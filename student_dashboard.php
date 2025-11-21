@@ -1,11 +1,25 @@
 <?php
 session_start();
-if (!isset($_SESSION['user']) || $_SESSION['role'] !== 'student') {
+require_once 'db/connection.php';
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student') {
     header("Location: login.php");
     exit;
 }
-$name = $_SESSION['user'];
+
+$name = $_SESSION['fullname'];
 $firstName = explode(' ', $name)[0];
+$student_id = $_SESSION['user_id'];
+
+// Load appointments for main calendar
+$appointments = $conn->prepare("
+    SELECT a.appointment_desc, c.fname, c.lname, c.mi 
+    FROM appointments a 
+    JOIN counselor c ON a.counselor_id = c.counselor_id 
+    WHERE a.student_id = ?
+");
+$appointments->execute([$student_id]);
+$events = $appointments->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -18,41 +32,25 @@ $firstName = explode(' ', $name)[0];
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
     <style>
-        .modal {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.65); justify-content: center; align-items: center;
-            z-index: 9999;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                 background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 9999; }
         .modal.active { display: flex; }
 
-        .chat-header { 
-            display: flex; align-items: center; gap: 15px; 
-            padding: 15px; border-bottom: 1px solid #eee; background: white;
-        }
-        .counselor-avatar { 
-            width: 55px; height: 55px; background: #D8BEE5; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center;
-        }
-        .counselor-info h4 { margin: 0; font-size: 18px; color: #4b2b63; }
-        .counselor-info small { color: #8e44ad; font-weight: 600; }
+        .booking-steps { display: flex; justify-content: center; gap: 25px; margin: 25px 0; font-weight: 600; }
+        .step { padding: 10px 20px; border-radius: 50px; background: #f0e6ff; color: #8e44ad; }
+        .step.active { background: #8e44ad; color: white; font-weight: 800; }
 
-        .chat-container { 
-            height: 380px; overflow-y: auto; padding: 15px; background: #f9f5ff; border-radius: 16px;
-        }
-        .chat-message { 
-            max-width: 80%; margin: 12px 0; padding: 12px 16px; border-radius: 18px; 
-            line-height: 1.5; font-size: 15px; clear: both;
-        }
-        .chat-message.counselor { 
-            background: white; border: 1px solid #e0d4f5; 
-            border-radius: 18px 18px 18px 4px; float: left;
-        }
-        .chat-message.student { 
-            background: linear-gradient(135deg, #D8BEE5, #b88ed9); color: white;
-            border-radius: 18px 18px 4px 18px; float: right;
-        }
-        .close-modal { font-size: 32px; cursor: pointer; color: #aaa; }
+        .counselor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin: 20px; }
+        .counselor-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+                          cursor: pointer; transition: all 0.3s; border: 3px solid transparent; text-align: left; }
+        .counselor-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(139,89,182,0.25); }
+        .counselor-card.selected { border-color: #8e44ad; background: #faf5ff; }
+        .counselor-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 4px solid #D8BEE5; }
+
+        .calendar-container { height: 520px; margin: 20px; background: white; border-radius: 16px; padding: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+
+        .chat-header, .chat-container, .chat-message { /* your existing styles */ }
+        .close-modal { position: absolute; top: 15px; right: 25px; font-size: 34px; cursor: pointer; color: #aaa; z-index: 10; }
         .close-modal:hover { color: #000; }
     </style>
 </head>
@@ -88,90 +86,86 @@ $firstName = explode(' ', $name)[0];
     </div>
 
     <div class="card-grid">
-        <!-- FULLY INTERACTIVE CALENDAR -->
         <div class="widget">
             <h3>My Schedule</h3>
             <div id="calendar"></div>
-            <p style="margin-top:10px; font-size:14px; color:#8e44ad;">
-                Click any available time slot to book
-            </p>
+            <p style="margin-top:10px; font-size:14px; color:#8e44ad;">Click any time slot to book</p>
         </div>
 
-        <!-- Upcoming Appointments -->
         <div class="widget">
             <h3>My Upcoming Appointments</h3>
             <div style="margin-top:15px;">
+                <?php foreach ($events as $e):
+                    $cname = trim($e['fname'] . ' ' . ($e['mi'] ? $e['mi'].'. ' : '') . ' ' . $e['lname']);
+                    $dt = new DateTime(explode("\n", $e['appointment_desc'])[0] ?? $e['appointment_desc']);
+                    $reason = explode("\nReason: ", $e['appointment_desc'])[1] ?? 'Counseling Session';
+                ?>
                 <div class="appointment-item" style="background:#f8f5ff; border-radius:12px; padding:15px; margin-bottom:15px;">
-                    <div>
-                        <strong>Nov 20, 2025 • 10:00 AM</strong><br>
-                        <small>Dr. Joshua Cruz • Academic Stress</small>
+                    <div><strong><?= $dt->format('M j, Y • g:i A') ?></strong><br>
+                        <small><?= htmlspecialchars($cname) ?> • <?= htmlspecialchars($reason) ?></small>
                     </div>
-                    <div>
-                        <span style="color:#27ae60; font-weight:bold;">Confirmed</span><br>
-                        <button onclick="openAppointmentChat('Dr. Joshua Cruz', 'Senior Counselor', 'joshua')" 
-                                style="margin-top:8px; padding:8px 16px; background:#8e44ad; color:white; border:none; border-radius:10px; font-size:13px; cursor:pointer;">
-                            Open Chat
-                        </button>
-                    </div>
+                    <div><span style="color:#27ae60; font-weight:bold;">Confirmed</span></div>
                 </div>
+                <?php endforeach; ?>
+                <?php if (empty($events)): ?><p>No upcoming appointments yet.</p><?php endif; ?>
             </div>
         </div>
     </div>
 
-    <div class="emergency">
-        <i class="fa-solid fa-phone"></i> In Crisis? Call Hopeline PH: <strong>0917-558-4673</strong>
-    </div>
+    <div class="emergency">In Crisis? Call Hopeline PH: <strong>0917-558-4673</strong></div>
 </div>
 
-<!-- BOOKING MODAL -->
+<!-- BOOKING MODAL: Counselor → Calendar → Reason -->
 <div class="modal" id="bookingModal">
-    <div class="modal-content" style="max-width:520px;" onclick="event.stopPropagation()">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3>Guidance Counseling Appointment</h3>
-            <span class="close-modal" onclick="closeModal('bookingModal')">×</span>
+    <div class="modal-content" style="max-width:820px; max-height:92vh; overflow-y:auto; position:relative;">
+        <span class="close-modal" onclick="closeBookingModal()">×</span>
+
+        <div class="booking-steps">
+            <div class="step active" id="step1">1. Choose Counselor</div>
+            <div class="step" id="step2">2. Pick Time</div>
+            <div class="step" id="step3">3. Reason</div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:25px; margin-bottom:25px;">
-            <div>
-                <strong>Your Counselor</strong><br><br>
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div class="counselor-avatar">
-                        <i class="fa-solid fa-user-tie" style="font-size:32px; color:#4b2b63;"></i>
-                    </div>
-                    <div>
-                        <strong>Dr. Emily Carter</strong><br>
-                        <small style="color:#6f4f88;">Senior Counselor<br>20+ years experience</small>
-                    </div>
+        <!-- Step 1: Choose Counselor -->
+        <div id="step1Content">
+            <h3 style="text-align:center; margin:20px 0;">Who would you like to meet with?</h3>
+            <div class="counselor-grid" id="counselorGrid">
+                <!-- Loaded via JS -->
+            </div>
+        </div>
+
+        <!-- Step 2: Calendar (perfectly fitted) -->
+        <div id="step2Content" style="display:none;">
+            <div style="text-align:center; margin:20px 0;">
+                <img id="selectedCounselorPhoto" src="" style="width:90px; height:90px; border-radius:50%; object-fit:cover; margin-bottom:12px;">
+                <h3>Schedule with <span id="selectedCounselorName"></span></h3>
+                <p style="color:#8e44ad; font-weight:600;" id="selectedCounselorTitle"></p>
+            </div>
+            <div class="calendar-container">
+                <div id="counselorCalendar"></div>
+            </div>
+            <div style="text-align:center; margin:20px 0;">
+                <button class="btn" onclick="backToCounselors()">← Back</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Reason -->
+        <div id="step3Content" style="display:none; padding:20px;">
+            <h3 style="text-align:center; margin-bottom:20px;">Tell us more</h3>
+            <div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;">
+                <img id="finalPhoto" src="" style="width:80px; height:80px; border-radius:50%; object-fit:cover;">
+                <div>
+                    <strong id="finalName"></strong><br>
+                    <small style="color:#8e44ad;">Counseling Session</small>
                 </div>
             </div>
-            <div>
-                <label><strong>Counselor</strong></label>
-                <select id="counselorSelect" style="width:100%; padding:12px; margin-top:8px; border-radius:10px; border:1px solid #D8BEE5;">
-                    <option>Dr. Emily Carter</option>
-                    <option>Dr. Joshua Cruz</option>
-                    <option>Ms. Marissa Tan</option>
-                </select>
-
-                <label style="margin-top:15px;"><strong>Date & Time</strong></label>
-                <input type="datetime-local" id="bookingDateTime" style="width:100%; padding:12px; margin-top:8px; border-radius:10px; border:1px solid #D8BEE5;" required>
-
-                <label style="margin-top:15px;"><strong>Duration</strong></label>
-                <select id="durationSelect" style="width:100%; padding:12px; margin-top:8px; border-radius:10px; border:1px solid #D8BEE5;">
-                    <option>30 minutes</option>
-                    <option>45 minutes</option>
-                    <option>60 minutes</option>
-                </select>
+            <textarea id="reasonField" rows="6" placeholder="Briefly share what you'd like to talk about... (optional)"
+                      style="width:100%; padding:16px; border-radius:12px; border:1px solid #D8BEE5; resize:none; font-family:inherit;"></textarea>
+            <div style="text-align:center; margin-top:25px;">
+                <button class="btn" onclick="backToCalendar()">← Back</button>
+                <button class="btn" style="background:#8e44ad; color:white; margin-left:12px;" onclick="confirmBooking()">Confirm & Book</button>
             </div>
         </div>
-
-        <div class="input-field">
-            <label><strong>Reason for Visit</strong></label>
-            <textarea id="visitReason" rows="4" placeholder="Briefly share what's on your mind..." style="width:100%; padding:14px; border-radius:10px; border:1px solid #D8BEE5; margin-top:8px; resize:none;"></textarea>
-        </div>
-
-        <button onclick="submitBooking()" style="margin-top:25px; width:100%; padding:16px; background:linear-gradient(135deg,#b88ed9,#D8BEE5); border:none; border-radius:12px; color:white; font-size:17px; font-weight:bold; cursor:pointer;">
-            Book Appointment
-        </button>
     </div>
 </div>
 
@@ -217,93 +211,7 @@ $firstName = explode(' ', $name)[0];
     </div>
 </div>
 
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
-<script>
-
-// GLOBAL MODAL FUNCTIONS
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
-}
-
-// Close modal when clicking outside
-window.onclick = function(e) {
-    if (e.target.classList.contains('modal')) {
-        e.target.classList.remove('active');
-    }
-}
-
-// interactable calendaaar
-let calendar;
-document.addEventListener('DOMContentLoaded', function() {
-    const calendarEl = document.getElementById('calendar');
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
-        slotMinTime: '08:00:00',
-        slotMaxTime: '17:00:00',
-        selectable: true,
-        selectOverlap: false,
-        height: 'auto',
-        events: [
-            { title: 'Academic Stress', start: '2025-11-20T10:00:00', color: '#27ae60' },
-            { title: 'Family Concerns', start: '2025-11-25T14:30:00', color: '#f39c12' }
-        ],
-        select: function(info) {
-            document.getElementById('bookingDateTime').value = info.startStr.slice(0,16);
-            openModal('bookingModal');
-        }
-    });
-    calendar.render();
-});
-
-function openBookingModal() {
-    openModal('bookingModal');
-}
-function submitBooking() {
-    alert('Appointment request sent! A counselor will confirm soon.');
-    closeModal('bookingModal');
-}
-
-// EMERGENCY CHAT
-function openEmergencyChat() {
-    openModal('emergencyChatModal');
-    document.getElementById('emergencyMessages').innerHTML = `
-        <div class="chat-message counselor">Hi <?= $firstName ?>, I'm Dr. Emily Carter. You're safe here. How are you feeling right now?</div>
-    `;
-}
-function sendEmergencyMessage() {
-    const input = document.getElementById('emergencyInput');
-    const msg = input.value.trim();
-    if (!msg) return;
-    const container = document.getElementById('emergencyMessages');
-    container.innerHTML += `<div class="chat-message student">${msg}</div>`;
-    container.innerHTML += `<div class="chat-message counselor">Thank you for sharing that with me. I'm here to help however I can.</div>`;
-    container.scrollTop = container.scrollHeight;
-    input.value = '';
-}
-
-// APPOINTMENT CHAT
-function openAppointmentChat(name, title) {
-    document.getElementById('chatCounselorName').textContent = name;
-    document.getElementById('chatCounselorTitle').textContent = title;
-    openModal('appointmentChatModal');
-    document.getElementById('appointmentMessages').innerHTML = `
-        <div class="chat-message counselor">Hi <?= $firstName ?>! How can I support you today?</div>
-    `;
-}
-function sendAppointmentMessage() {
-    const input = document.getElementById('appointmentInput');
-    const msg = input.value.trim();
-    if (!msg) return;
-    const container = document.getElementById('appointmentMessages');
-    container.innerHTML += `<div class="chat-message student">${msg}</div>`;
-    container.scrollTop = container.scrollHeight;
-    input.value = '';
-}
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="js/booking.js"></script>
 </body>
 </html>
