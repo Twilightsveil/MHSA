@@ -53,8 +53,8 @@ if (isset($_POST['login'])) {
     <div class="login-left">
         <div class="login-box">
             <div class="system-title">
-                <h1>Guidance Office</h1>
-                <p>Student Mental Health & Appointment System</p>
+                <h1>Student Mental Health & Appointment System</h1>
+                <p>Guidance Office</p>
             </div>
             <form method="POST">
                 <div class="input-field">
