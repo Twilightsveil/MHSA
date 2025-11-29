@@ -20,6 +20,9 @@ $appointments = $conn->prepare("
 ");
 $appointments->execute([$student_id]);
 $events = $appointments->fetchAll();
+
+// Define current page for sidebar active state
+$current_page = 'dashboard';
 ?>
 
 <!DOCTYPE html>
@@ -32,219 +35,258 @@ $events = $appointments->fetchAll();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
     <style>
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                 background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 9999; }
-        .modal.active { display: flex; }
-
-        .booking-steps { display: flex; justify-content: center; gap: 25px; margin: 25px 0; font-weight: 600; }
-        .step { padding: 10px 20px; border-radius: 50px; background: #f0e6ff; color: #8e44ad; }
-        .step.active { background: #8e44ad; color: white; font-weight: 800; }
-
-        .counselor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin: 20px; }
-        .counselor-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-                          cursor: pointer; transition: all 0.3s; border: 3px solid transparent; text-align: left; }
-        .counselor-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(139,89,182,0.25); }
-        .counselor-card.selected { border-color: #8e44ad; background: #faf5ff; }
-        .counselor-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 4px solid #D8BEE5; }
-
-        .calendar-container { height: 520px; margin: 20px; background: white; border-radius: 16px; padding: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
-
-        .chat-header, .chat-container, .chat-message { /* your existing styles */ }
-        .close-modal { position: absolute; top: 15px; right: 25px; font-size: 34px; cursor: pointer; color: #aaa; z-index: 10; }
-        .close-modal:hover { color: #000; }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 999; 
+        }
+        .modal-content { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            position: relative; 
+            max-width: 500px; 
+            width: 90%; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
 
 <div class="navbar">
-    <div class="left-group" style="display:flex;align-items:center;gap:12px">
-        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
-            <span class="avatar" style="background:linear-gradient(135deg,#D8BEE5,#b88ed9)!important;"><i class="fa-solid fa-user"></i></span>
+    <div class="logo">Student Portal</div>
+    <div class="nav-right">
+        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)" aria-controls="profileDropdown" aria-expanded="false" aria-label="Toggle profile menu">
+            <div class="avatar"><i class="fas fa-user-graduate"></i></div>
         </button>
+        
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="padding:12px;">
-                <div class="avatar" style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#D8BEE5,#b88ed9);display:flex;align-items:center;justify-content:center;">
-                    <i class="fa-solid fa-user"></i>
-                </div>
+            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
+                <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-graduate"></i></div>
                 <div class="info">
-                    <div style="font-weight:700"><?= htmlspecialchars($name) ?></div>
-                    <small style="color:#8e44ad;">Student</small>
+                    <div><?= htmlspecialchars($name) ?></div>
+                    <small>Student</small>
                 </div>
             </div>
-            <a href="student_profile.php" class="profile-item">My Profile</a>
-            <a href="logout.php" class="profile-item">Logout</a>
+            <ul>
+                <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
+                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
+                </a></li>
+                <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
+                    <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
+                </a></li>
+            </ul>
         </div>
-        <div class="logo">Student | <?= htmlspecialchars($name) ?></div>
     </div>
 </div>
-
-<div class="dashboard-content">
-    <div class="page-title">
-        <h1>Hello, <?= $firstName ?>!</h1>
-        <p>We're here to support you anytime</p>
-    </div>
-
-    <div class="action-cards">
-        <div class="action-card" onclick="openBookingModal()">
-            <i class="fa-solid fa-calendar-plus"></i>
-            <h3>Book Appointment</h3>
-            <p>Schedule a confidential session</p>
+<div class="dashboard-container">
+    
+    <aside class="sidebar">
+        <h2>Main Menu</h2>
+        <nav class="sidebar-menu">
+            <ul>
+                <li><a href="student_dashboard.php" class="<?= ($current_page == 'dashboard') ? 'active' : ''; ?>">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a></li>
+                <li><a href="student_appointments.php" class="<?= ($current_page == 'appointments') ? 'active' : ''; ?>">
+                    <i class="fas fa-calendar-check"></i> My Appointments
+                </a></li>
+                <li><a href="#" onclick="openBookingModal()" style="color: var(--primary); font-weight: 700;">
+                    <i class="fas fa-plus-circle" style="color:var(--primary);"></i> Book New Session
+                </a></li>
+            </ul>
+        </nav>
+        <h2 style="margin-top:20px;">Account</h2>
+        <nav class="sidebar-menu">
+            <ul>
+                <li><a href="student_profile.php" class="<?= ($current_page == 'profile') ? 'active' : ''; ?>">
+                    <i class="fas fa-user-cog"></i> Profile Settings
+                </a></li>
+                <li><a href="logout.php" class="logout-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a></li>
+            </ul>
+        </nav>
+    </aside>
+    <div class="main-content">
+        
+        <div class="page-title" style="text-align:left;">
+            <h1 style="font-size:32px;color:var(--purple-dark);">Hello, <?= htmlspecialchars($firstName) ?>.</h1>
+            <p style="color:var(--text-light);font-size:18px;">How can we help you today?</p>
         </div>
-        <div class="action-card" onclick="openEmergencyChat()">
-            <i class="fa-solid fa-comment-medical"></i>
-            <h3>I'm Not Okay</h3>
-            <p>Instant private chat with a counselor</p>
+        
+        <div class="emergency">
+            Need urgent help? Call the Crisis Hotline: 0917-558-HELP (4357) or 
+            <button class="btn small" style="background:white; color:var(--danger); margin-left:15px; padding: 5px 12px; transform:none; box-shadow:none;" onclick="openModal('emergencyChatModal')">
+                <i class="fas fa-headset"></i> Chat Now
+            </button>
         </div>
-        <div class="action-card" onclick="location.href='resources.php'">
-            <i class="fa-solid fa-heart"></i>
-            <h3>Mental Health Resources</h3>
-            <p>Tips, hotlines & support</p>
-        </div>
-    </div>
-
-    <div class="card-grid">
-        <div class="widget">
-            <h3>My Schedule</h3>
-            <div id="calendar"></div>
-            <p style="margin-top:10px; font-size:14px; color:#8e44ad;">Click any time slot to book</p>
-        </div>
-
-        <div class="widget">
-            <h3>My Upcoming Appointments</h3>
-            <div style="margin-top:15px;">
-                <?php foreach ($events as $e):
-                    $cname = trim($e['fname'] . ' ' . ($e['mi'] ? $e['mi'].'. ' : '') . ' ' . $e['lname']);
-                    $dt = new DateTime(explode("\n", $e['appointment_desc'])[0] ?? $e['appointment_desc']);
-                    $reason = explode("\nReason: ", $e['appointment_desc'])[1] ?? 'Counseling Session';
-                ?>
-                <div class="appointment-item" style="background:#f8f5ff; border-radius:12px; padding:15px; margin-bottom:15px;">
-                    <div><strong><?= $dt->format('M j, Y • g:i A') ?></strong><br>
-                        <small><?= htmlspecialchars($cname) ?> • <?= htmlspecialchars($reason) ?></small>
+        
+        <div class="dashboard-content">
+            <div class="card-grid">
+                
+                <div class="widget">
+                    <h3><i class="fas fa-toolbox"></i> Tools & Actions</h3>
+                    <div style="display:flex; flex-direction:column; gap:15px;">
+                        <button class="btn" onclick="openBookingModal()">
+                            <i class="fas fa-calendar-plus" style="margin-right: 10px;"></i> Request New Appointment
+                        </button>
+                        <button class="btn btn-secondary" onclick="openModal('emergencyChatModal')" style="box-shadow: none !important;">
+                            <i class="fas fa-headset" style="margin-right: 10px;"></i> Emergency/Immediate Chat
+                        </button>
                     </div>
-                    <div><span style="color:#27ae60; font-weight:bold;">Confirmed</span></div>
                 </div>
-                <?php endforeach; ?>
-                <?php if (empty($events)): ?><p>No upcoming appointments yet.</p><?php endif; ?>
+
+                <div class="widget" style="padding: 15px;">
+                    <h3 style="padding:15px 15px 10px 15px;margin-bottom:10px;"><i class="fas fa-calendar-alt"></i> My Appointments Calendar</h3>
+                    <div id="calendar" style="margin-top: 10px;"></div>
+                </div>
             </div>
         </div>
+
     </div>
-
-    <div class="emergency">In Crisis? Call Hopeline PH: <strong>0917-558-4673</strong></div>
-</div>
-
-<!-- BOOKING MODAL: Counselor → Calendar → Reason -->
+    </div>
 <div class="modal" id="bookingModal">
-    <div class="modal-content" style="max-width:820px; max-height:92vh; overflow-y:auto; position:relative;">
+    <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-modal" onclick="closeBookingModal()">×</span>
-
+        
+        <h3 style="text-align:center; margin-bottom: 0;">Book a Counseling Session</h3>
         <div class="booking-steps">
-            <div class="step active" id="step1">1. Choose Counselor</div>
-            <div class="step" id="step2">2. Pick Time</div>
-            <div class="step" id="step3">3. Reason</div>
+            <span class="step active" id="step1">1. Counselor</span>
+            <span class="step" id="step2">2. Date & Time</span>
+            <span class="step" id="step3">3. Reason & Confirm</span>
         </div>
-
-        <!-- Step 1: Choose Counselor -->
+        
         <div id="step1Content">
-            <h3 style="text-align:center; margin:20px 0;">Who would you like to meet with?</h3>
-            <div class="counselor-grid" id="counselorGrid">
-                <!-- Loaded via JS -->
-            </div>
+            <p style="text-align:center; color:var(--text-light); margin-bottom: 20px;">Choose a counselor to view their availability.</p>
+            <div id="counselorGrid" class="card-grid counselor-grid">
+                </div>
+            <button class="btn" style="width:100%;" id="counselorNextBtn" disabled onclick="nextStep(2)">Next: Choose Date</button>
         </div>
 
-        <!-- Step 2: Calendar (perfectly fitted) -->
         <div id="step2Content" style="display:none;">
-            <div style="text-align:center; margin:20px 0;">
-                <img id="selectedCounselorPhoto" src="" style="width:90px; height:90px; border-radius:50%; object-fit:cover; margin-bottom:12px;">
-                <h3>Schedule with <span id="selectedCounselorName"></span></h3>
-                <p style="color:#8e44ad; font-weight:600;" id="selectedCounselorTitle"></p>
-            </div>
-            <div class="calendar-container">
-                <div id="counselorCalendar"></div>
-            </div>
-            <div style="text-align:center; margin:20px 0;">
-                <button class="btn" onclick="backToCounselors()">← Back</button>
+            <p style="text-align:center; color:var(--text-light); margin-bottom: 20px;">Select an available time slot below.</p>
+            <div id="dateTimeCalendar" class="calendar-container"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+                <button class="btn btn-secondary small" onclick="backToCounselors()">Back</button>
+                <div id="selectedTimeDisplay" style="font-weight:700; color:var(--primary);"></div>
+                <button class="btn small" id="nextBtn" disabled onclick="nextStep(3)">Next: Finalize</button>
             </div>
         </div>
-
-        <!-- Step 3: Reason -->
-        <div id="step3Content" style="display:none; padding:20px;">
-            <h3 style="text-align:center; margin-bottom:20px;">Tell us more</h3>
-            <div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;">
-                <img id="finalPhoto" src="" style="width:80px; height:80px; border-radius:50%; object-fit:cover;">
+        
+        <div id="step3Content" style="display:none;">
+            <h4 style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Confirmation</h4>
+            <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+                <img id="finalPhoto" src="" alt="Counselor Photo" class="counselor-photo" style="width: 50px; height: 50px;">
                 <div>
-                    <strong id="finalName"></strong><br>
-                    <small style="color:#8e44ad;">Counseling Session</small>
+                    <strong>Counselor:</strong> <span id="finalName"></span><br>
+                    <strong>Time:</strong> <span id="finalDateTime"></span>
                 </div>
             </div>
-            <textarea id="reasonField" rows="6" placeholder="Briefly share what you'd like to talk about... (optional)"
-                      style="width:100%; padding:16px; border-radius:12px; border:1px solid #D8BEE5; resize:none; font-family:inherit;"></textarea>
-            <div style="text-align:center; margin-top:25px;">
-                <button class="btn" onclick="backToCalendar()">← Back</button>
-                <button class="btn" style="background:#8e44ad; color:white; margin-left:12px;" onclick="confirmBooking()">Confirm & Book</button>
+            <div class="input-field">
+                <label for="reasonField">Reason for Visit (Required)</label>
+                <textarea id="reasonField" rows="4" placeholder="Briefly describe what you would like to discuss..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                <button class="btn btn-secondary" onclick="backToTimeSelection()">Back</button>
+                <button class="btn" onclick="confirmBooking()">Confirm Appointment</button>
             </div>
         </div>
+
     </div>
 </div>
 
-<!-- EMERGENCY CHAT -->
 <div class="modal" id="emergencyChatModal">
-    <div class="modal-content" style="max-width:520px;" onclick="event.stopPropagation()">
+    <div class="modal-content">
         <div class="chat-header">
             <div class="counselor-avatar">
-                <i class="fa-solid fa-user-tie" style="font-size:28px; color:#4b2b63;"></i>
+                <i class="fa-solid fa-headset"></i>
             </div>
             <div class="counselor-info">
-                <h4>Dr. Emily Carter</h4>
-                <small>Senior Counselor • Available Now</small>
+                <h4>Crisis Support</h4>
+                <small style="color:var(--danger);">Immediate help available</small>
             </div>
             <span class="close-modal" onclick="closeModal('emergencyChatModal')">×</span>
         </div>
-        <div id="emergencyMessages" class="chat-container"></div>
-        <div style="display:flex; gap:10px; padding:15px; background:white;">
-            <input type="text" id="emergencyInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendEmergencyMessage()" style="flex:1; padding:14px; border-radius:12px; border:1px solid #D8BEE5;">
-            <button onclick="sendEmergencyMessage()" style="padding:14px 20px; background:#8e44ad; color:white; border:none; border-radius:12px;">Send</button>
+        <div id="emergencyMessages" class="chat-container">
+            <p style="text-align:center; padding-top:20px; color:var(--text-light);">You are connecting to an immediate support counselor. Please wait or start typing.</p>
         </div>
-    </div>
-</div>
-
-<!-- APPOINTMENT CHAT -->
-<div class="modal" id="appointmentChatModal">
-    <div class="modal-content" style="max-width:520px;" onclick="event.stopPropagation()">
-        <div class="chat-header">
-            <div class="counselor-avatar">
-                <i class="fa-solid fa-user-tie" style="font-size:28px; color:#4b2b63;"></i>
-            </div>
-            <div class="counselor-info">
-                <h4 id="chatCounselorName">Dr. Joshua Cruz</h4>
-                <small id="chatCounselorTitle">Senior Counselor</small>
-            </div>
-            <span class="close-modal" onclick="closeModal('appointmentChatModal')">×</span>
-        </div>
-        <div id="appointmentMessages" class="chat-container"></div>
-        <div style="display:flex; gap:10px; padding:15px; background:white;">
-            <input type="text" id="appointmentInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendAppointmentMessage()" style="flex:1; padding:14px; border-radius:12px; border:1px solid #D8BEE5;">
-            <button onclick="sendAppointmentMessage()" style="padding:14px 20px; background:#8e44ad; color:white; border:none; border-radius:12px;">Send</button>
+        <div style="display:flex; gap:10px; padding:15px; background:white; border-radius: 0 0 20px 20px;">
+            <input type="text" id="emergencyInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendEmergencyMessage()" style="flex:1;">
+            <button onclick="sendEmergencyMessage()" class="btn small" style="padding:10px 18px;">Send</button>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script src="js/booking.js"></script>
 <script>
+    // Placeholder functions for modal/dropdown logic
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function sendEmergencyMessage() { alert("Sending emergency message placeholder."); }
 
-function toggleProfileDropdown(e) {
-    e.stopPropagation();
-    const dd = document.getElementById('profileDropdown');
-    const hidden = dd.getAttribute('aria-hidden') === 'true';
-    dd.setAttribute('aria-hidden', !hidden);
-}
-document.addEventListener('click', (e) => {
-    const dd = document.getElementById('profileDropdown');
-    const btn = document.getElementById('profileBtn');
-    if (dd && dd.getAttribute('aria-hidden') === 'false' && !dd.contains(e.target) && !btn.contains(e.target)) {
-        dd.setAttribute('aria-hidden', 'true');
+    function toggleProfileDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('profileDropdown');
+        if (!dd) return;
+        const isHidden = dd.getAttribute('aria-hidden') !== 'false';
+        dd.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
     }
-});
+    document.addEventListener('click', (e) => {
+        const dd = document.getElementById('profileDropdown');
+        const btn = document.getElementById('profileBtn');
+        if (dd && dd.getAttribute('aria-hidden') === 'false' && !dd.contains(e.target) && !btn.contains(e.target)) {
+            dd.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    // FullCalendar Initialization - using existing PHP logic
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth', 
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            height: 'auto',
+            selectable: true,
+            select: function (info) {
+                // openBookingModal(); // Removed direct call to avoid confusion
+            },
+            events: [
+                <?php foreach ($events as $event): 
+                    $c_name = trim("{$event['fname']} {$event['mi']} {$event['lname']}");
+                ?>
+                { 
+                    title: 'Session with <?= htmlspecialchars($c_name) ?>', 
+                    start: '<?= $event['appointment_desc'] ?>',
+                    color: 'var(--primary)'
+                },
+                <?php endforeach; ?>
+            ]
+        });
+        calendar.render();
+    });
+
+    // Placeholder functions for booking.js that are needed in the HTML
+    function openBookingModal() { document.getElementById('bookingModal').style.display = 'flex'; /* Load counselors via AJAX here */ }
+    function closeBookingModal() { document.getElementById('bookingModal').style.display = 'none'; }
+    function nextStep(step) { console.log("Next step in booking flow called."); }
+    function backToCounselors() { console.log("Back to counselors called."); }
+    function backToTimeSelection() { console.log("Back to time selection called."); }
+    function confirmBooking() { console.log("Booking confirmed called."); }
+
 </script>
+<script src="js/booking.js"></script>
+<script src="js/student.js"></script>
 </body>
 </html>
