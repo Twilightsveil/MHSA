@@ -8,6 +8,8 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'counselor') {
 }
 
 $counselor_id = $_SESSION['user_id'];
+$counselor_name = $_SESSION['fullname'];
+$firstName = explode(' ', $counselor_name)[0]; 
 $today = date('Y-m-d');
 
 // Fetch today's appointments
@@ -23,13 +25,16 @@ $today_appointments = $stmt->fetchAll();
 
 // Fetch all appointments for calendar
 $stmt = $conn->prepare("
-    SELECT a.appointment_desc, s.fname, s.lname, s.mi, s.student_id
+    SELECT a.appointment_desc, s.fname, s.lname, s.mi, a.appointment_id
     FROM appointments a 
     JOIN student s ON a.student_id = s.student_id 
     WHERE a.counselor_id = ?
 ");
 $stmt->execute([$counselor_id]);
 $all_appointments = $stmt->fetchAll();
+
+// Define current page for sidebar active state
+$current_page = 'dashboard'; 
 ?>
 
 <!DOCTYPE html>
@@ -40,102 +45,169 @@ $all_appointments = $stmt->fetchAll();
     <title>Counselor Dashboard • Guidance Office</title>
     <link rel="stylesheet" href="CSS/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet'/>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
 </head>
 <body>
 
 <div class="navbar">
-    <div class="left-group" style="display:flex;align-items:center;gap:12px">
-        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
-            <span class="avatar"><i class="fa-solid fa-user"></i></span>
+    <div class="logo">Counselor Portal</div>
+    <div class="nav-right">
+        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)" aria-controls="profileDropdown" aria-expanded="false" aria-label="Toggle profile menu">
+            <div class="avatar"><i class="fas fa-user-tie"></i></div>
         </button>
+        
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="padding:12px;border-bottom:1px solid #f0e6ff;">
-                <div class="avatar" style="width:48px;height:48px;border-radius:8px;background:linear-gradient(135deg,#D8BEE5,#b88ed9);display:flex;align-items:center;justify-content:center;">
-                    <i class="fa-solid fa-user"></i>
-                </div>
+            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
+                <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-tie"></i></div>
                 <div class="info">
-                    <div style="font-weight:700"><?= htmlspecialchars($_SESSION['fullname']) ?></div>
-                    <small style="color:#8e44ad">Counselor</small>
+                    <div><?= htmlspecialchars($counselor_name) ?></div>
+                    <small>Counselor</small>
                 </div>
             </div>
-            <a href="counselor_profile.php" class="profile-item">View Profile</a>
-            <a href="logout.php" class="profile-item">Logout</a>
+            <ul>
+                <li><a href="counselor_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
+                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
+                </a></li>
+                <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
+                    <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
+                </a></li>
+            </ul>
         </div>
-        <div class="logo">Counselor • <?= htmlspecialchars($_SESSION['fullname']) ?></div>
     </div>
 </div>
-
-<div class="dashboard-content">
-    <div class="page-title">
-        <h1>Welcome back, <?= explode(' ', $_SESSION['fullname'])[0] ?>!</h1>
-        <p>Today is <strong><?= date('l, F j, Y') ?></strong></p>
-    </div>
-
-    <div class="card-grid">
-        <div class="widget">
-            <h3>Today's Schedule</h3>
-            <?php if (empty($today_appointments)): ?>
-                <p>No appointments today.</p>
-            <?php else: ?>
-                <?php foreach ($today_appointments as $i => $apt): 
-                    $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                    $time = date('h:i A', strtotime($apt['appointment_desc']));
-                ?>
-                <div class="appointment-item" data-id="<?= $apt['appointment_id'] ?>">
-                    <div>
-                        <strong id="time-<?= $apt['appointment_id'] ?>"><?= $time ?></strong> • <?= htmlspecialchars($name) ?><br>
-                        <small>ID: <?= $apt['student_id'] ?></small>
-                    </div>
-                    <div class="actions">
-                        <button class="action-btn done-btn" onclick="markStatus(<?= $apt['appointment_id'] ?>, 'done')">Done</button>
-                        <button class="action-btn monitoring-btn" onclick="markStatus(<?= $apt['appointment_id'] ?>, 'monitoring')">Monitoring</button>
-                        <button class="action-btn reschedule-btn" onclick="openFollowUpFromList(<?= $apt['appointment_id'] ?>, '<?= htmlspecialchars($name) ?>')">Follow Up</button>
-                        <button class="action-btn chat-btn" onclick="openChatModal('<?= htmlspecialchars($name) ?>', '<?= $apt['student_id'] ?>')">
-                            Chat
-                        </button>
-                    </div>
+<div class="dashboard-container">
+    
+    <aside class="sidebar">
+        <h2>Main Menu</h2>
+        <nav class="sidebar-menu">
+            <ul>
+                <li><a href="counselor_dashboard.php" class="<?= ($current_page == 'dashboard') ? 'active' : ''; ?>">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a></li>
+                <li><a href="counselor_appointments.php" class="<?= ($current_page == 'appointments') ? 'active' : ''; ?>">
+                    <i class="fas fa-calendar-check"></i> Appointments
+                    <span class="badge"><?= count($today_appointments) ?></span> 
+                </a></li>
+                <li><a href="counselor_chat.php" class="<?= ($current_page == 'chat') ? 'active' : ''; ?>">
+                    <i class="fas fa-comments"></i> Chat
+                </a></li>
+            </ul>
+        </nav>
+        <h2 style="margin-top:20px;">Account</h2>
+        <nav class="sidebar-menu">
+            <ul>
+                <li><a href="counselor_profile.php" class="<?= ($current_page == 'profile') ? 'active' : ''; ?>">
+                    <i class="fas fa-user-cog"></i> Profile Settings
+                </a></li>
+                <li><a href="logout.php" class="logout-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a></li>
+            </ul>
+        </nav>
+    </aside>
+    <div class="main-content">
+        
+        <div class="page-title" style="text-align:left;">
+            <h1 style="font-size:32px;color:var(--purple-dark);">Welcome back, <?= htmlspecialchars($firstName) ?>.</h1>
+            <p style="color:var(--text-light);font-size:18px;">Overview of your schedule and student activity.</p>
+        </div>
+        
+        <div class="dashboard-content">
+            <div class="card-grid">
+                
+                <div class="widget">
+                    <h3><i class="fas fa-clock"></i> Today's Appointments (<?= count($today_appointments) ?>)</h3>
+                    <?php if (empty($today_appointments)): ?>
+                        <p style="color:var(--text-light);">No appointments scheduled for today.</p>
+                    <?php else: ?>
+                        <div class="appointment-list">
+                            <?php foreach ($today_appointments as $apt): 
+                                $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
+                                $time = date('g:i A', strtotime($apt['appointment_desc']));
+                            ?>
+                            <div class="appointment-item">
+                                <div class="details">
+                                    <strong><?= $time ?></strong>
+                                    <small><?= htmlspecialchars($name) ?></small>
+                                </div>
+                                <div class="actions">
+                                    <button class="action-btn chat-btn" onclick="openChatModal('<?= $apt['student_id'] ?>', '<?= htmlspecialchars($name) ?>')">
+                                        <i class="fas fa-comment-dots"></i> Chat
+                                    </button>
+                                    <button class="action-btn done-btn" onclick="completeAppointment('<?= $apt['appointment_id'] ?>')">
+                                        <i class="fas fa-check"></i> Complete
+                                    </button>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+
+                <div class="widget" style="padding: 15px;">
+                    <h3 style="padding:15px 15px 10px 15px;margin-bottom:10px;"><i class="fas fa-calendar-alt"></i> Appointment Calendar</h3>
+                    <div id="calendar" style="margin-top: 10px;"></div>
+                </div>
+
+            </div>
         </div>
 
-        <div class="widget">
-            <h3>Appointment Calendar</h3>
-            <div id="calendar"></div>
-        </div>
     </div>
-</div>
-
+    </div>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-        initialView: 'timeGridWeek',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
-        height: 'auto',
-        slotMinTime: '08:00:00',
-        slotMaxTime: '18:00:00',
-        editable: true,
-        events: [
-            <?php foreach ($all_appointments as $apt): 
-                $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                $title = "$name - Counseling";
-            ?>
-            { 
-                id: '<?= $apt['appointment_id'] ?>', 
-                title: '<?= $title ?>', 
-                start: '<?= $apt['appointment_desc'] ?>',
-                color: '#9b59b6'
+    let calendar;
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+            height: 'auto',
+            slotMinTime: '08:00:00',
+            slotMaxTime: '18:00:00',
+            editable: true,
+            events: [
+                <?php foreach ($all_appointments as $apt): 
+                    $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
+                    $title = "{$name} - Session";
+                ?>
+                { 
+                    id: '<?= $apt['appointment_id'] ?>', 
+                    title: '<?= $title ?>', 
+                    start: '<?= $apt['appointment_desc'] ?>',
+                    color: 'var(--primary)' 
+                },
+                <?php endforeach; ?>
+            ],
+            // Event Handlers for Edit/Drag
+            eventClick: function(info) {
+                // openEditModal(info.event); // Re-implement your modal call here
             },
-            <?php endforeach; ?>
-        ],
-        eventClick: function(info) {
-            openEditModal(info.event);
+        });
+        calendar.render();
+    });
+
+    // Helper functions for profile dropdown
+    function toggleProfileDropdown(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('profileDropdown');
+        if (!dd) return;
+        const isHidden = dd.getAttribute('aria-hidden') !== 'false';
+        dd.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+    }
+    document.addEventListener('click', (e) => {
+        const dd = document.getElementById('profileDropdown');
+        const btn = document.getElementById('profileBtn');
+        if (dd && dd.getAttribute('aria-hidden') === 'false' && !dd.contains(e.target) && !btn.contains(e.target)) {
+            dd.setAttribute('aria-hidden', 'true');
         }
     });
-    calendar.render();
-});
+
+    // Placeholder functions you should define in JS/counselor.js
+    function openChatModal(studentId, studentName) { console.log(`Opening chat with ${studentName} (${studentId})`); }
+    function completeAppointment(appointmentId) { console.log(`Completing appointment ${appointmentId}`); }
+
 </script>
 <script src="js/counselor.js"></script>
 </body>
