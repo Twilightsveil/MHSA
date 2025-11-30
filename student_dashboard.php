@@ -101,6 +101,13 @@ $current_page = 'dashboard';
                 <li><a href="#" onclick="openBookingModal()" style="color: var(--primary); font-weight: 700;">
                     <i class="fas fa-plus-circle" style="color:var(--primary);"></i> Book New Session
                 </a></li>
+
+                <li><a href="resources.php" class="<?= ($current_page == 'resources') ? 'active' : ''; ?>">
+                    <i class="fas fa-th-large"></i> Meantal Health Resources
+                </a></li>
+                
+               
+
             </ul>
         </nav>
         <h2 style="margin-top:20px;">Account</h2>
@@ -153,6 +160,8 @@ $current_page = 'dashboard';
 
     </div>
     </div>
+
+    
 <div class="modal" id="bookingModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <span class="close-modal" onclick="closeBookingModal()">×</span>
@@ -224,6 +233,7 @@ $current_page = 'dashboard';
         </div>
     </div>
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
