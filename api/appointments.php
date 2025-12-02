@@ -28,10 +28,12 @@ if ($check->fetchColumn()) {
 }
 
 // Insert into correct columns
+
+// Insert with status 'pending'
 $stmt = $conn->prepare("
     INSERT INTO appointments 
-    (counselor_ID, student_Id, appointment_date, Appointment_desc) 
-    VALUES (?, ?, ?, ?)
+    (counselor_ID, student_Id, appointment_date, Appointment_desc, status) 
+    VALUES (?, ?, ?, ?, 'pending')
 ");
 
 $success = $stmt->execute([

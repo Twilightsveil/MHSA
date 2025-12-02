@@ -9,11 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
         slotMinTime: '08:00:00',
         slotMaxTime: '18:00:00',
         editable: true,
-        events: [
-            { id: '1', title: 'Maria Clara Santos - Anxiety', start: '2025-11-18T10:30:00', color: '#9b59b6' },
-            { id: '2', title: 'Juan Luna Reyes - Academic Stress', start: '2025-11-18T14:00:00', color: '#e67e22' },
-            { id: '3', title: 'Anna Sofia Lim - Peer Conflict', start: '2025-11-18T16:00:00', color: '#e74c3c' }
-        ],
+        // Events are provided by PHP in the HTML, do not hardcode here
+        events: [],
         eventClick: function (info) {
             openEditModal(info.event);
         },

@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require_once 'db/connection.php';
@@ -12,20 +13,29 @@ $counselor_name = $_SESSION['fullname'];
 $firstName = explode(' ', $counselor_name)[0]; 
 $today = date('Y-m-d');
 
-// Fetch today's appointments
+// Load notifications from file (if any) and merge into session
+$notif_file = __DIR__ . "/sessions/counselor_{$counselor_id}_notifs.json";
+if (file_exists($notif_file)) {
+    $file_notifs = json_decode(file_get_contents($notif_file), true) ?: [];
+    if (!isset($_SESSION['counselor_notifications'])) $_SESSION['counselor_notifications'] = [];
+    $_SESSION['counselor_notifications'] = array_merge($_SESSION['counselor_notifications'], $file_notifs);
+    file_put_contents($notif_file, json_encode([])); // clear file after loading
+}
+
+// Fetch today's appointments (pending only)
 $stmt = $conn->prepare("
     SELECT a.*, s.fname, s.lname, s.mi, s.student_id 
     FROM appointments a 
     JOIN student s ON a.student_id = s.student_id 
-    WHERE a.counselor_id = ? AND DATE(a.appointment_desc) = ?
-    ORDER BY a.appointment_desc
+    WHERE a.counselor_id = ? AND DATE(a.appointment_date) = ? AND (a.status IS NULL OR a.status = 'pending')
+    ORDER BY a.appointment_date
 ");
 $stmt->execute([$counselor_id, $today]);
 $today_appointments = $stmt->fetchAll();
 
-// Fetch all appointments for calendar
+// Fetch all appointments for calendar (show status)
 $stmt = $conn->prepare("
-    SELECT a.appointment_desc, s.fname, s.lname, s.mi, a.appointment_id
+    SELECT a.appointment_date, a.appointment_desc, s.fname, s.lname, s.mi, a.appointment_id, a.status
     FROM appointments a 
     JOIN student s ON a.student_id = s.student_id 
     WHERE a.counselor_id = ?
@@ -51,11 +61,42 @@ $current_page = 'dashboard';
 
 <div class="navbar">
     <div class="logo">Counselor Portal</div>
-    <div class="nav-right">
+    <div class="nav-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Notification Bell -->
+        <div style="position: relative;">
+            <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;position:relative;">
+                <i class="fas fa-bell fa-lg"></i>
+                <?php if (!empty($_SESSION['counselor_notifications'])): ?>
+                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:12px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">
+                        <?= count($_SESSION['counselor_notifications']) ?>
+                    </span>
+                <?php endif; ?>
+            </button>
+            <div id="notifDropdown" class="profile-dropdown" style="min-width:260px;right:0;left:auto;display:none;position:absolute;z-index:1001;">
+                <div style="padding:10px 20px;font-weight:bold;border-bottom:1px solid #eee;">Notifications</div>
+                <ul style="max-height:300px;overflow-y:auto;padding:0;margin:0;list-style:none;">
+                    <?php if (!empty($_SESSION['counselor_notifications'])): ?>
+                        <?php foreach ($_SESSION['counselor_notifications'] as $i => $notif): ?>
+                            <li style="padding:12px 20px;border-bottom:1px solid #f5f5f5;">
+                                <?= htmlspecialchars($notif) ?>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <li style="padding:12px 20px;color:#888;">No notifications</li>
+                    <?php endif; ?>
+                </ul>
+                <?php if (!empty($_SESSION['counselor_notifications'])): ?>
+                <form method="post" style="margin:0;text-align:center;">
+                    <input type="hidden" name="clear_counselor_notifications" value="1">
+                    <button type="submit" style="background:none;border:none;color:#6f42c1;cursor:pointer;padding:10px 0;font-size:14px;">Clear All</button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
+        <!-- Profile Button -->
         <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)" aria-controls="profileDropdown" aria-expanded="false" aria-label="Toggle profile menu">
             <div class="avatar"><i class="fas fa-user-tie"></i></div>
         </button>
-        
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
             <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
                 <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-tie"></i></div>
@@ -75,6 +116,29 @@ $current_page = 'dashboard';
         </div>
     </div>
 </div>
+<?php
+// Clear notifications if requested
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_counselor_notifications'])) {
+    $_SESSION['counselor_notifications'] = [];
+    // Optionally reload to update UI
+    echo "<script>location.href=location.href;</script>";
+}
+?>
+</head>
+<script>
+// Toggle notification dropdown
+function toggleNotifDropdown(e) {
+    e.stopPropagation();
+    var dd = document.getElementById('notifDropdown');
+    dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', function handler(ev) {
+        if (!dd.contains(ev.target) && ev.target.id !== 'notifBtn') {
+            dd.style.display = 'none';
+            document.removeEventListener('click', handler);
+        }
+    });
+}
+</script>
 <div class="dashboard-container">
     
     <aside class="sidebar">
@@ -123,19 +187,21 @@ $current_page = 'dashboard';
                         <div class="appointment-list">
                             <?php foreach ($today_appointments as $apt): 
                                 $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                                $time = date('g:i A', strtotime($apt['appointment_desc']));
+                                $time = date('g:i A', strtotime($apt['appointment_date']));
+                                $desc = htmlspecialchars($apt['appointment_desc']);
                             ?>
                             <div class="appointment-item">
                                 <div class="details">
                                     <strong><?= $time ?></strong>
-                                    <small><?= htmlspecialchars($name) ?></small>
+                                    <small><?= htmlspecialchars($name) ?></small><br>
+                                    <span style="color:#888; font-size:13px;">Reason: <?= $desc ?></span>
                                 </div>
                                 <div class="actions">
                                     <button class="action-btn chat-btn" onclick="openChatModal('<?= $apt['student_id'] ?>', '<?= htmlspecialchars($name) ?>')">
                                         <i class="fas fa-comment-dots"></i> Chat
                                     </button>
-                                    <button class="action-btn done-btn" onclick="completeAppointment('<?= $apt['appointment_id'] ?>')">
-                                        <i class="fas fa-check"></i> Complete
+                                    <button class="action-btn approve-btn" style="background:#27ae60;color:#fff;" onclick="approveAppointment('<?= $apt['appointment_id'] ?>')">
+                                        <i class="fas fa-check"></i> Approve
                                     </button>
                                 </div>
                             </div>
@@ -170,13 +236,14 @@ $current_page = 'dashboard';
             events: [
                 <?php foreach ($all_appointments as $apt): 
                     $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                    $title = "{$name} - Session";
+                    $title = "{$name} - " . htmlspecialchars($apt['appointment_desc']);
+                    $color = ($apt['status'] === 'approved') ? '#27ae60' : 'var(--primary)';
                 ?>
                 { 
                     id: '<?= $apt['appointment_id'] ?>', 
                     title: '<?= $title ?>', 
-                    start: '<?= $apt['appointment_desc'] ?>',
-                    color: 'var(--primary)' 
+                    start: '<?= $apt['appointment_date'] ?>',
+                    color: '<?= $color ?>' 
                 },
                 <?php endforeach; ?>
             ],
@@ -206,7 +273,23 @@ $current_page = 'dashboard';
 
     // Placeholder functions you should define in JS/counselor.js
     function openChatModal(studentId, studentName) { console.log(`Opening chat with ${studentName} (${studentId})`); }
-    function completeAppointment(appointmentId) { console.log(`Completing appointment ${appointmentId}`); }
+    function approveAppointment(appointmentId) {
+        if (!confirm('Approve this appointment?')) return;
+        fetch('api/approve_appointment.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'appointment_id=' + encodeURIComponent(appointmentId)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Appointment approved!');
+                location.reload();
+            } else {
+                alert('Failed to approve: ' + (data.message || 'Unknown error'));
+            }
+        });
+    }
 
 </script>
 <script src="js/counselor.js"></script>

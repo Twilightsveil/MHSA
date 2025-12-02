@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require_once 'db/connection.php';
@@ -10,6 +11,15 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student') {
 $name = $_SESSION['fullname'];
 $firstName = explode(' ', $name)[0];
 $student_id = $_SESSION['user_id'];
+
+// Load notifications from file (if any) and merge into session
+$notif_file = __DIR__ . "/sessions/student_{$student_id}_notifs.json";
+if (file_exists($notif_file)) {
+    $file_notifs = json_decode(file_get_contents($notif_file), true) ?: [];
+    if (!isset($_SESSION['student_notifications'])) $_SESSION['student_notifications'] = [];
+    $_SESSION['student_notifications'] = array_merge($_SESSION['student_notifications'], $file_notifs);
+    file_put_contents($notif_file, json_encode([])); // clear file after loading
+}
 
 // Load appointments for main calendar
 $appointments = $conn->prepare("
@@ -184,7 +194,39 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
 <!-- Navbar -->
 <div class="navbar">
     <div class="logo">Student Portal</div>
-    <div class="nav-right">
+    <div class="nav-right" style="display: flex; align-items: center; gap: 20px;">
+        <!-- Notification Bell -->
+        <div style="position: relative;">
+            <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;position:relative;">
+                <i class="fas fa-bell fa-lg"></i>
+                <?php if (!empty($_SESSION['student_notifications'])): ?>
+                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:12px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">
+                        <?= count($_SESSION['student_notifications']) ?>
+                    </span>
+                <?php endif; ?>
+            </button>
+            <div id="notifDropdown" class="profile-dropdown" style="min-width:260px;right:0;left:auto;display:none;position:absolute;z-index:1001;">
+                <div style="padding:10px 20px;font-weight:bold;border-bottom:1px solid #eee;">Notifications</div>
+                <ul style="max-height:300px;overflow-y:auto;padding:0;margin:0;list-style:none;">
+                    <?php if (!empty($_SESSION['student_notifications'])): ?>
+                        <?php foreach ($_SESSION['student_notifications'] as $i => $notif): ?>
+                            <li style="padding:12px 20px;border-bottom:1px solid #f5f5f5;">
+                                <?= htmlspecialchars($notif) ?>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <li style="padding:12px 20px;color:#888;">No notifications</li>
+                    <?php endif; ?>
+                </ul>
+                <?php if (!empty($_SESSION['student_notifications'])): ?>
+                <form method="post" style="margin:0;text-align:center;">
+                    <input type="hidden" name="clear_student_notifications" value="1">
+                    <button type="submit" style="background:none;border:none;color:#6f42c1;cursor:pointer;padding:10px 0;font-size:14px;">Clear All</button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
+        <!-- Profile Button -->
         <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
             <div class="avatar"><i class="fas fa-user-graduate"></i></div>
         </button>
@@ -203,6 +245,29 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 </div>
+<?php
+// Clear notifications if requested
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_student_notifications'])) {
+    $_SESSION['student_notifications'] = [];
+    // Optionally reload to update UI
+    echo "<script>location.href=location.href;</script>";
+}
+?>
+</head>
+<script>
+// Toggle notification dropdown
+function toggleNotifDropdown(e) {
+    e.stopPropagation();
+    var dd = document.getElementById('notifDropdown');
+    dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', function handler(ev) {
+        if (!dd.contains(ev.target) && ev.target.id !== 'notifBtn') {
+            dd.style.display = 'none';
+            document.removeEventListener('click', handler);
+        }
+    });
+}
+</script>
 
 <!-- Main Content -->
 <div class="main-content">
