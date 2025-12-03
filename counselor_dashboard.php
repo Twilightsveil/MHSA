@@ -274,6 +274,87 @@ function toggleNotifDropdown(e) {
 </div>
 
 
+
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
+        height: '100%',
+        selectable: true,
+
+        select: function(info) {
+            const selectedDate = info.startStr.split('T')[0];
+            selectedCounselor = null;
+            selectedSlot = null;
+
+            openBookingModal();
+            document.getElementById('datePicker').value = selectedDate;
+
+            const nextBtn = document.getElementById('counselorNextBtn');
+            nextBtn.onclick = null;
+            nextBtn.onclick = function() {
+                nextStep(2);
+                setTimeout(() => {
+                    const picker = document.getElementById('datePicker');
+                    if (picker.value === selectedDate) {
+                        picker.dispatchEvent(new Event('change'));
+                    }
+                }, 100);
+            };
+        },
+
+        events: [
+            <?php foreach($events as $e): 
+                $cname = trim($e['fname'] . ' ' . ($e['mi'] ? $e['mi'].'.' : '') . ' ' . $e['lname']);
+                $formatted = date('F j, Y \a\t g:i A', strtotime($e['appointment_date']));
+            ?>
+            {
+                title: 'Session with <?= htmlspecialchars($cname) ?>',
+                start: '<?= $e['appointment_date'] ?>',
+                color: '#8e44ad',
+                textColor: 'white',
+                extendedProps: {
+                    appointment_id: <?= (int)$e['appointment_id'] ?>,
+                    counselor: '<?= htmlspecialchars($cname) ?>',
+                    initials: '<?= strtoupper($e['fname'][0] . $e['lname'][0]) ?>',
+                    datetime: '<?= $formatted ?>',
+                    reason: '<?= htmlspecialchars($e['Appointment_desc'] ?? 'Not specified') ?>'
+                }
+            },
+            <?php endforeach; ?>
+        ],
+
+        eventClick: function(info) {
+            currentAppointmentId = info.event.extendedProps.appointment_id;
+            document.getElementById('detailInitials').textContent = info.event.extendedProps.initials;
+            document.getElementById('detailCounselor').textContent = info.event.extendedProps.counselor;
+            document.getElementById('detailDateTime').textContent = info.event.extendedProps.datetime;
+            document.getElementById('detailReason').textContent = info.event.extendedProps.reason;
+            document.getElementById('appointmentDetailModal').style.display = 'flex';
+        }
+    });
+    calendar.render();
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
