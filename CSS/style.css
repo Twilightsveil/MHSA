@@ -159,7 +159,25 @@ button, .btn {
     color: var(--purple-dark);
 }
 .nav-right {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px; 
+
+}
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+    color: #4b0d7a;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+.back-btn:hover {
+    background: rgba(0,0,0,0.08);
 }
 .profile-btn {
     background: none;
