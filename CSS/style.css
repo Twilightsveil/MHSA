@@ -1,6 +1,6 @@
 :root {
     --primary: #8e44ad;
-    --purple-lightest: #f5f1ff;
+    --purple-lightest: #e1d9f6;
     --purple-light: #D8BEE5;
     --purple-dark: #4b2b63;
     --text-dark: #333;
@@ -159,7 +159,25 @@ button, .btn {
     color: var(--purple-dark);
 }
 .nav-right {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px; 
+
+}
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+    color: #4b0d7a;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+.back-btn:hover {
+    background: rgba(0,0,0,0.08);
 }
 .profile-btn {
     background: none;

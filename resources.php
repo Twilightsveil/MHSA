@@ -21,13 +21,14 @@ $current_page = 'resources';
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="CSS/style.css">
+ <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
 
 <style>
 body {
     margin: 0;
     padding: 0;
     font-family: 'Arial', sans-serif;
-    background: #ead8f0;
+    background: #efe7f1ff;
 }
 
 .main-content {
@@ -98,6 +99,38 @@ a.link:hover {
     max-width: 900px; 
     width: 100%; 
 }
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+    color: #4b0d7a;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+.back-btn:hover {
+    background: rgba(0,0,0,0.08);
+}
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px; 
+
+}
+.profile-btn .avatar {
+    width: 100%;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
 
 </style>
 </head>
@@ -105,29 +138,15 @@ a.link:hover {
 <body>
 
 <div class="navbar">
-    <div class="logo">Student Portal</div>
+    <div class="logo">Mental Health Resources</div>
     <div class="nav-right">
-        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)" aria-controls="profileDropdown" aria-expanded="false" aria-label="Toggle profile menu">
-            <div class="avatar"><i class="fas fa-user-graduate"></i></div>
-        </button>
-        
-        <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
-                <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-graduate"></i></div>
-                <div class="info">
-                    <div><?= htmlspecialchars($name) ?></div>
-                    <small>Student</small>
-                </div>
-            </div>
-            <ul>
-                <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
-                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
-                </a></li>
-                <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
-                    <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
-                </a></li>
-            </ul>
-        </div>
+
+    <!-- Back Button -->
+    <button class="back-btn" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+
+       
     </div>
 </div>
 

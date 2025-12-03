@@ -56,6 +56,73 @@ $current_page = 'dashboard';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
 </head>
+
+<style>
+   
+
+    /* MAIN CONTENT */
+    .main-content {
+        margin-left: 80px;
+        padding: 25px;
+        width: calc(100% - 250px);
+    }
+
+    .page-title h1 {
+        margin: 0;
+        font-size: 32px;
+        color: var(--purple-dark);
+    }
+
+    /* FLEX LAYOUT: Calendar LEFT, Appointments RIGHT */
+    .dashboard-flex {
+        display:flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 25px;
+    }
+
+    /* CALENDAR BOX */
+    .calendar-container {
+        flex: 1;
+        min-width: 650px;
+        background: var(--white);
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+
+    /* APPOINTMENT CARD */
+    .appointment-card {
+        width: 330px;
+        background: var(--white);
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+    }
+
+    .appointment-card h3 {
+        margin-top: 0;
+        color: var(--purple-dark);
+    }
+
+    .appointment-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .appointment-item:last-child {
+        border-bottom: none;
+    }
+
+    #calendar {
+        margin-top: 15px;
+    }
+</style>
+</head>
+
 <body>
 
 <div class="navbar">
@@ -169,161 +236,158 @@ function toggleNotifDropdown(e) {
         </nav>
     </aside>
     <div class="main-content">
-        
-        <div class="page-title" style="text-align:left;">
-            <h1 style="font-size:32px;color:var(--purple-dark);">Welcome back, <?= htmlspecialchars($firstName) ?>.</h1>
-            <p style="color:var(--text-light);font-size:18px;">Overview of your schedule and student activity.</p>
-        </div>
-        
-        <div class="dashboard-content">
-            <div class="card-grid">
-                
-                <div class="widget">
-                    <h3><i class="fas fa-clock"></i> Today's Appointments (<?= count($today_appointments) ?>)</h3>
-                    <?php if (empty($today_appointments)): ?>
-                        <p style="color:var(--text-light);">No appointments scheduled for today.</p>
-                    <?php else: ?>
-                        <div class="appointment-list">
-                            <?php foreach ($today_appointments as $apt): 
-                                $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                                $time = date('g:i A', strtotime($apt['appointment_date']));
-                                $desc = htmlspecialchars($apt['appointment_desc']);
-                            ?>
-                            <div class="appointment-item">
-                                <div class="details">
-                                    <strong><?= $time ?></strong>
-                                    <small><?= htmlspecialchars($name) ?></small><br>
-                                    <span style="color:#888; font-size:13px;">Reason: <?= $desc ?></span>
-                                </div>
-                                <div class="actions">
-                                    <button class="action-btn chat-btn" onclick="openChatModal('<?= $apt['student_id'] ?>', '<?= htmlspecialchars($name) ?>')">
-                                        <i class="fas fa-comment-dots"></i> Chat
-                                    </button>
-                                    <button class="action-btn approve-btn" style="background:#27ae60;color:#fff;" onclick="approveAppointment('<?= $apt['appointment_id'] ?>')">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
 
-                <div class="widget" style="padding: 15px;">
-                    <h3 style="padding:15px 15px 10px 15px;margin-bottom:10px;"><i class="fas fa-calendar-alt"></i> Appointment Calendar</h3>
-                    <div id="calendar" style="margin-top: 10px;"></div>
-                </div>
-
-            </div>
-        </div>
-
+    <div class="page-title">
+        <h1>Welcome back, <?= htmlspecialchars($firstName) ?>.</h1>
+        <p style="color:var(--text-light);font-size:18px;">Overview of your schedule and student activity.</p>
     </div>
-    </div>
-<!-- Appointment Detail Modal (Counselor) -->
-<div class="modal" id="appointmentDetailModal">
-    <div class="modal-content" style="max-width: 500px;">
-        <span class="close-modal" onclick="document.getElementById('appointmentDetailModal').style.display='none'">×</span>
-        <h3 style="text-align:center; margin-bottom:20px; color:var(--purple-dark);">Appointment Details</h3>
-        <div style="text-align:center; margin-bottom:25px;">
-            <div style="width:90px; height:90px; background:var(--primary); color:white; border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold;">
-                <span id="detailInitials"></span>
-            </div>
-            <h4 style="margin:10px 0; color:var(--text-dark);" id="detailStudent"></h4>
+
+    <!-- FLEX: Calendar LEFT | Appointments RIGHT -->
+    <div class="dashboard-flex">
+
+        <!-- LEFT: CALENDAR -->
+        <div class="calendar-container">
+            <h3><i class="fas fa-calendar-alt"></i> Appointment Calendar</h3>
+            <div id="calendar"></div>
         </div>
-        <div style="background:#f8f9fa; padding:15px; border-radius:12px; margin:15px 0;">
-            <p style="margin:8px 0;"><strong>Date & Time:</strong> <span id="detailDateTime" style="color:var(--primary);"></span></p>
-            <p style="margin:8px 0;"><strong>Reason:</strong> <span id="detailReason"></span></p>
+
+        <!-- RIGHT: TODAY'S APPOINTMENTS -->
+        <div class="appointment-card">
+            <h3><i class="fas fa-clock"></i> Today's Appointments (<?= count($today_appointments) ?>)</h3>
+
+            <?php if (empty($today_appointments)): ?>
+                <p style="color:var(--text-light);">No appointments scheduled for today.</p>
+            <?php else: ?>
+                <?php foreach ($today_appointments as $apt): 
+                    $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
+                    $time = date('g:i A', strtotime($apt['appointment_desc']));
+                ?>
+                <div class="appointment-item">
+                    <strong><?= $time ?></strong><br>
+                    <small><?= htmlspecialchars($name) ?></small>
+                </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
-        <div style="text-align:center; margin-top:25px;">
-            <button class="btn" style="background:#27ae60; color:white;" onclick="approveAppointmentModal()">
-                Approve Appointment
-            </button>
-        </div>
+
     </div>
 </div>
-<script>
-let currentAppointmentId = null;
-function approveAppointmentModal() {
-    if (!currentAppointmentId || !confirm('Approve this appointment?')) return;
-    fetch('api/approve_appointment.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'appointment_id=' + encodeURIComponent(currentAppointmentId)
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            alert('Appointment approved');
-            document.getElementById('appointmentDetailModal').style.display = 'none';
-            location.reload();
-        } else alert('Failed to approve');
-    });
-}
-</script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script>
-    let calendar;
-    
-    document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
-            height: 'auto',
-            slotMinTime: '08:00:00',
-            slotMaxTime: '18:00:00',
-            editable: true,
-            events: [
-                <?php foreach ($all_appointments as $apt): 
-                    $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                    $title = "{$name} - " . htmlspecialchars($apt['appointment_desc']);
-                    $color = ($apt['status'] === 'approved') ? '#27ae60' : 'var(--primary)';
-                    $initials = strtoupper(($apt['fname'][0] ?? 'S') . ($apt['lname'][0] ?? 'T'));
-                    $datetime = date('F j, Y \a\t g:i A', strtotime($apt['appointment_date']));
-                ?>
-                {
-                    id: '<?= $apt['appointment_id'] ?>',
-                    title: '<?= $title ?>',
-                    start: '<?= $apt['appointment_date'] ?>',
-                    color: '<?= $color ?>',
-                    textColor: 'white',
-                    extendedProps: {
-                        appointment_id: '<?= $apt['appointment_id'] ?>',
-                        student: '<?= htmlspecialchars($name) ?>',
-                        initials: '<?= $initials ?>',
-                        datetime: '<?= $datetime ?>',
-                        reason: '<?= htmlspecialchars($apt['appointment_desc']) ?>',
-                        status: '<?= $apt['status'] ?>'
+
+
+
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
+        height: '100%',
+        selectable: true,
+
+        select: function(info) {
+            const selectedDate = info.startStr.split('T')[0];
+            selectedCounselor = null;
+            selectedSlot = null;
+
+            openBookingModal();
+            document.getElementById('datePicker').value = selectedDate;
+
+            const nextBtn = document.getElementById('counselorNextBtn');
+            nextBtn.onclick = null;
+            nextBtn.onclick = function() {
+                nextStep(2);
+                setTimeout(() => {
+                    const picker = document.getElementById('datePicker');
+                    if (picker.value === selectedDate) {
+                        picker.dispatchEvent(new Event('change'));
                     }
-                },
-                <?php endforeach; ?>
-            ],
-            eventContent: function(arg) {
-                var status = arg.event.extendedProps.status;
-                var dot = '';
-                if (status === 'approved') {
-                    dot = '<span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>';
+                }, 100);
+            };
+        },
+
+        events: [
+            <?php foreach($events as $e): 
+                $cname = trim($e['fname'] . ' ' . ($e['mi'] ? $e['mi'].'.' : '') . ' ' . $e['lname']);
+                $formatted = date('F j, Y \a\t g:i A', strtotime($e['appointment_date']));
+            ?>
+            {
+                title: 'Session with <?= htmlspecialchars($cname) ?>',
+                start: '<?= $e['appointment_date'] ?>',
+                color: '#8e44ad',
+                textColor: 'white',
+                extendedProps: {
+                    appointment_id: <?= (int)$e['appointment_id'] ?>,
+                    counselor: '<?= htmlspecialchars($cname) ?>',
+                    initials: '<?= strtoupper($e['fname'][0] . $e['lname'][0]) ?>',
+                    datetime: '<?= $formatted ?>',
+                    reason: '<?= htmlspecialchars($e['Appointment_desc'] ?? 'Not specified') ?>'
                 }
-                var time = arg.timeText ? arg.timeText + ' ' : '';
-                var title = arg.event.title.split(' - ')[0];
-                return {
-                    html: '<span style="display:flex;align-items:center;">' + dot + '<span>' + time + title + '</span></span>'
-                };
             },
-            // Event Handlers for Edit/Drag
-            eventClick: function(info) {
-                // Use extendedProps for student details
-                const props = info.event.extendedProps || {};
-                document.getElementById('detailInitials').textContent = props.initials || 'ST';
-                document.getElementById('detailStudent').textContent = props.student || info.event.title || '';
-                document.getElementById('detailDateTime').textContent = props.datetime || (info.event.start ? new Date(info.event.start).toLocaleString() : '-');
-                document.getElementById('detailReason').textContent = props.reason || '-';
-                currentAppointmentId = props.appointment_id || info.event.id;
-                document.getElementById('appointmentDetailModal').style.display = 'flex';
-            },
-        });
-        calendar.render();
+            <?php endforeach; ?>
+        ],
+
+        eventClick: function(info) {
+            currentAppointmentId = info.event.extendedProps.appointment_id;
+            document.getElementById('detailInitials').textContent = info.event.extendedProps.initials;
+            document.getElementById('detailCounselor').textContent = info.event.extendedProps.counselor;
+            document.getElementById('detailDateTime').textContent = info.event.extendedProps.datetime;
+            document.getElementById('detailReason').textContent = info.event.extendedProps.reason;
+            document.getElementById('appointmentDetailModal').style.display = 'flex';
+        }
     });
+    calendar.render();
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const calendarEl = document.getElementById("calendar");
+
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "timeGridWeek",
+        height: "auto",
+        slotMinTime: "08:00:00",
+        slotMaxTime: "18:00:00",
+        headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay"
+        },
+        events: [
+            <?php foreach ($all_appointments as $apt): 
+                $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
+            ?>
+            {
+                id: "<?= $apt['appointment_id'] ?>",
+                title: "<?= $name ?>",
+                start: "<?= $apt['appointment_desc'] ?>",
+                color: "#4b3876"
+            },
+            <?php endforeach; ?>
+        ]
+    });
+
+    calendar.render();
+});
 
     // Helper functions for profile dropdown
     function toggleProfileDropdown(e) {
@@ -365,3 +429,6 @@ function approveAppointmentModal() {
 <script src="js/counselor.js"></script>
 </body>
 </html>
+
+
+
