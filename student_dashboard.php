@@ -226,11 +226,11 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
                 <?php endif; ?>
             </div>
         </div>
-        <!-- Profile Button -->        
-        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)" aria-controls="profileDropdown" aria-expanded="false" aria-label="Toggle profile menu">
+        <!-- Profile Button -->
+        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
             <div class="avatar"><i class="fas fa-user-graduate"></i></div>
         </button>
-        <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
+         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
             <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
                 <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-graduate"></i></div>
                 <div class="info">
@@ -240,14 +240,12 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <ul>
                 <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
-                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> Profile
-                </a></li>
+                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
                 <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
                     <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
                 </a></li>
             </ul>
         </div>
-
     </div>
 </div>
 <?php
