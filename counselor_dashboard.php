@@ -47,6 +47,73 @@ $current_page = 'dashboard';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
 </head>
+
+<style>
+   
+
+    /* MAIN CONTENT */
+    .main-content {
+        margin-left: 80px;
+        padding: 25px;
+        width: calc(100% - 250px);
+    }
+
+    .page-title h1 {
+        margin: 0;
+        font-size: 32px;
+        color: var(--purple-dark);
+    }
+
+    /* FLEX LAYOUT: Calendar LEFT, Appointments RIGHT */
+    .dashboard-flex {
+        display:flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 25px;
+    }
+
+    /* CALENDAR BOX */
+    .calendar-container {
+        flex: 1;
+        min-width: 650px;
+        background: var(--white);
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+
+    /* APPOINTMENT CARD */
+    .appointment-card {
+        width: 330px;
+        background: var(--white);
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+    }
+
+    .appointment-card h3 {
+        margin-top: 0;
+        color: var(--purple-dark);
+    }
+
+    .appointment-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .appointment-item:last-child {
+        border-bottom: none;
+    }
+
+    #calendar {
+        margin-top: 15px;
+    }
+</style>
+</head>
+
 <body>
 
 <div class="navbar">
@@ -106,87 +173,77 @@ $current_page = 'dashboard';
         </nav>
     </aside>
     <div class="main-content">
-        
-        <div class="page-title" style="text-align:left;">
-            <h1 style="font-size:32px;color:var(--purple-dark);">Welcome back, <?= htmlspecialchars($firstName) ?>.</h1>
-            <p style="color:var(--text-light);font-size:18px;">Overview of your schedule and student activity.</p>
-        </div>
-        
-        <div class="dashboard-content">
-            <div class="card-grid">
-                
-                <div class="widget">
-                    <h3><i class="fas fa-clock"></i> Today's Appointments (<?= count($today_appointments) ?>)</h3>
-                    <?php if (empty($today_appointments)): ?>
-                        <p style="color:var(--text-light);">No appointments scheduled for today.</p>
-                    <?php else: ?>
-                        <div class="appointment-list">
-                            <?php foreach ($today_appointments as $apt): 
-                                $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                                $time = date('g:i A', strtotime($apt['appointment_desc']));
-                            ?>
-                            <div class="appointment-item">
-                                <div class="details">
-                                    <strong><?= $time ?></strong>
-                                    <small><?= htmlspecialchars($name) ?></small>
-                                </div>
-                                <div class="actions">
-                                    <button class="action-btn chat-btn" onclick="openChatModal('<?= $apt['student_id'] ?>', '<?= htmlspecialchars($name) ?>')">
-                                        <i class="fas fa-comment-dots"></i> Chat
-                                    </button>
-                                    <button class="action-btn done-btn" onclick="completeAppointment('<?= $apt['appointment_id'] ?>')">
-                                        <i class="fas fa-check"></i> Complete
-                                    </button>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
 
-                <div class="widget" style="padding: 15px;">
-                    <h3 style="padding:15px 15px 10px 15px;margin-bottom:10px;"><i class="fas fa-calendar-alt"></i> Appointment Calendar</h3>
-                    <div id="calendar" style="margin-top: 10px;"></div>
-                </div>
+    <div class="page-title">
+        <h1>Welcome back, <?= htmlspecialchars($firstName) ?>.</h1>
+        <p style="color:var(--text-light);font-size:18px;">Overview of your schedule and student activity.</p>
+    </div>
 
-            </div>
+    <!-- FLEX: Calendar LEFT | Appointments RIGHT -->
+    <div class="dashboard-flex">
+
+        <!-- LEFT: CALENDAR -->
+        <div class="calendar-container">
+            <h3><i class="fas fa-calendar-alt"></i> Appointment Calendar</h3>
+            <div id="calendar"></div>
         </div>
 
-    </div>
-    </div>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script>
-    let calendar;
-    
-    document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
-            height: 'auto',
-            slotMinTime: '08:00:00',
-            slotMaxTime: '18:00:00',
-            editable: true,
-            events: [
-                <?php foreach ($all_appointments as $apt): 
+        <!-- RIGHT: TODAY'S APPOINTMENTS -->
+        <div class="appointment-card">
+            <h3><i class="fas fa-clock"></i> Today's Appointments (<?= count($today_appointments) ?>)</h3>
+
+            <?php if (empty($today_appointments)): ?>
+                <p style="color:var(--text-light);">No appointments scheduled for today.</p>
+            <?php else: ?>
+                <?php foreach ($today_appointments as $apt): 
                     $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
-                    $title = "{$name} - Session";
+                    $time = date('g:i A', strtotime($apt['appointment_desc']));
                 ?>
-                { 
-                    id: '<?= $apt['appointment_id'] ?>', 
-                    title: '<?= $title ?>', 
-                    start: '<?= $apt['appointment_desc'] ?>',
-                    color: 'var(--primary)' 
-                },
+                <div class="appointment-item">
+                    <strong><?= $time ?></strong><br>
+                    <small><?= htmlspecialchars($name) ?></small>
+                </div>
                 <?php endforeach; ?>
-            ],
-            // Event Handlers for Edit/Drag
-            eventClick: function(info) {
-                // openEditModal(info.event); // Re-implement your modal call here
+            <?php endif; ?>
+        </div>
+
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const calendarEl = document.getElementById("calendar");
+
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "timeGridWeek",
+        height: "auto",
+        slotMinTime: "08:00:00",
+        slotMaxTime: "18:00:00",
+        headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay"
+        },
+        events: [
+            <?php foreach ($all_appointments as $apt): 
+                $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
+            ?>
+            {
+                id: "<?= $apt['appointment_id'] ?>",
+                title: "<?= $name ?>",
+                start: "<?= $apt['appointment_desc'] ?>",
+                color: "#4b3876"
             },
-        });
-        calendar.render();
+            <?php endforeach; ?>
+        ]
     });
+
+    calendar.render();
+});
 
     // Helper functions for profile dropdown
     function toggleProfileDropdown(e) {
@@ -212,3 +269,6 @@ $current_page = 'dashboard';
 <script src="js/counselor.js"></script>
 </body>
 </html>
+
+
+
