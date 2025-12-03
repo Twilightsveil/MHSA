@@ -851,7 +851,7 @@ button, .btn {
 }
 
 .btn-primary {
-    padding: 14px 32px;
+    padding: 32px 32px;
     background: linear-gradient(135deg, var(--primary), #6f2b8a);
     color: white;
     border: none;
@@ -861,7 +861,7 @@ button, .btn {
     cursor: pointer;
     transition: all 0.3s;
     flex: 1;
-    max-width: 200px;
+    max-width: 100px;
     text-decoration: none; 
     display: inline-flex;
     align-items: center;
@@ -889,6 +889,7 @@ button, .btn {
     justify-content: center;
     flex: 1;
     max-width: 200px;
+    line-height: 1.6;
 }
 
 .btn-secondary:hover {
