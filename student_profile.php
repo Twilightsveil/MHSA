@@ -89,8 +89,8 @@ $current_page = 'profile';
                 </div>
             </div>
             <ul>
-                <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
-                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
+                <li><a href="student_dashboard.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
+                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> Home
                 </a></li>
                 <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
                     <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
@@ -101,33 +101,6 @@ $current_page = 'profile';
 </div>
 <div class="dashboard-container">
     
-    <aside class="sidebar">
-        <h2>Main Menu</h2>
-        <nav class="sidebar-menu">
-            <ul>
-                <li><a href="student_dashboard.php" class="<?= ($current_page == 'dashboard') ? 'active' : ''; ?>">
-                    <i class="fas fa-th-large"></i> Dashboard
-                </a></li>
-                <li><a href="student_appointments.php" class="<?= ($current_page == 'appointments') ? 'active' : ''; ?>">
-                    <i class="fas fa-calendar-check"></i> My Appointments
-                </a></li>
-                <li><a href="#" onclick="openBookingModal()" style="color: var(--primary); font-weight: 700;">
-                    <i class="fas fa-plus-circle" style="color:var(--primary);"></i> Book New Session
-                </a></li>
-            </ul>
-        </nav>
-        <h2 style="margin-top:20px;">Account</h2>
-        <nav class="sidebar-menu">
-            <ul>
-                <li><a href="student_profile.php" class="<?= ($current_page == 'profile') ? 'active' : ''; ?>">
-                    <i class="fas fa-user-cog"></i> Profile Settings
-                </a></li>
-                <li><a href="logout.php" class="logout-link">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a></li>
-            </ul>
-        </nav>
-    </aside>
     <div class="main-content">
         <div class="profile-header">
             <div class="profile-header-content">
@@ -141,7 +114,7 @@ $current_page = 'profile';
                         <i class="fa-solid fa-id-card"></i>
                         Student ID: <?= htmlspecialchars($student_id) ?>
                     </div>
-                    <div class="status-badge" style="background: rgba(142, 68, 173, 0.2); color: #8e44ad;">
+                    <div class="status-badge" style="background: rgba(142, 68, 173, 0.2); color: #f7f6f8ff;">
                          <i class="fa-solid fa-circle" style="font-size: 8px;"></i>
                         Active Student
                     </div>

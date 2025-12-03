@@ -19,13 +19,13 @@
 
 body {
     font-family: "Inter", Arial, sans-serif;
-    background: var(--purple-lightest); /* Changed to lightest purple for main body */
+    background: var(--purple-lightest);
     min-height: 100vh;
     color: var(--text-dark);
     line-height: 1.6;
 }
 
-/* ============== UTILITIES ============== */
+/* Utils */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -62,7 +62,7 @@ body {
     font-size: 14px;
 }
 
-/* ============== LOGIN ============== */
+/* LOGIN PAGE */
 .login-wrapper { display: flex; min-height: 100vh; }
 .login-left { width: 50%; display: flex; justify-content: center; align-items: center; padding: 40px; }
 .login-right { 
@@ -139,7 +139,7 @@ button, .btn {
 .login-right .hotline-mobile { display:none; }
 
 
-/* ============== NAVBAR ============== */
+/* NAVBAR */
 .navbar {
     position: sticky;
     top: 0;
@@ -220,11 +220,11 @@ button, .btn {
 }
 
 
-/* ============== DASHBOARD LAYOUT FIXES ============== */
+/* DASHBOARD */
 .dashboard-container {
     display: flex;
     gap: 25px;
-    max-width: 1400px; /* Max width for a spacious layout */
+    max-width: 1400px;
     margin: 25px auto;
     align-items: flex-start;
     padding: 0 20px;
@@ -236,7 +236,7 @@ button, .btn {
     padding: 20px;
     border-radius: 20px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    position: sticky; /* Keep it visible when scrolling */
+    position: sticky;
     top: calc(var(--navbar-height) + 15px);
     height: fit-content;
 }
@@ -304,11 +304,11 @@ button, .btn {
 }
 
 .main-content {
-    flex-grow: 1; /* Allows main content to take up remaining space */
-    width: calc(100% - var(--sidebar-width) - 25px); /* Fallback for older browsers */
+    flex-grow: 1;
+    width: calc(100% - var(--sidebar-width) - 25px);
 }
 
-/* ============== PAGE CONTENT ============== */
+/* PAGE CONTENT */
 .page-title { margin-bottom: 25px; }
 
 .emergency {
@@ -395,7 +395,7 @@ button, .btn {
 .action-btn.done-btn:hover { background: #219653; }
 
 
-/* ============== MODALS ============== */
+/* MODALS */
 .modal {
     display: none;
     position: fixed;
@@ -528,6 +528,60 @@ button, .btn {
     font-size: 12px;
 }
 
+#counselorGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin: 20px 0;
+}
+
+.counselor-card {
+    border: 2px solid #eee;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: white;
+}
+
+.counselor-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(142,68,173,0.18);
+}
+
+.counselor-card.selected {
+    border-color: var(--primary);
+    background: #f3e8ff;
+    box-shadow: 0 0 0 4px rgba(142,68,173,0.25);
+    transform: translateY(-4px);
+}
+
+.counselor-photo {
+    width: 70px;
+    height: 70px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 auto 12px;
+}
+
+.counselor-info h4 {
+    margin: 8px 0 4px;
+    font-size: 16px;
+    color: var(--purple-dark);
+}
+
+.counselor-info small {
+    display: block;
+    font-size: 13px;
+}
 
 /* Chat Modal Styling */
 .chat-header {
@@ -581,7 +635,7 @@ button, .btn {
 }
 
 
-/* ============== MEDIA QUERIES (Mobile Responsiveness) ============== */
+/* Responive (sana) */
 @media (max-width: 900px) {
     /* Login Page */
     .login-wrapper { flex-direction: column; }
@@ -629,13 +683,7 @@ button, .btn {
     .appointment-item .actions { margin-top: 10px; }
 }
 
-
-/* ==================================== */
-/* ========== PROFILE UI STYLES (for both Student and Counselor) ========== */
-/* ==================================== */
-
-
-
+/* PROFILE PAGE */
 .profile-header {
     background: linear-gradient(135deg, #6f2b8a 0%, #8e44ad 100%);
     color: white;
@@ -803,7 +851,7 @@ button, .btn {
 }
 
 .btn-primary {
-    padding: 14px 32px;
+    padding: 32px 32px;
     background: linear-gradient(135deg, var(--primary), #6f2b8a);
     color: white;
     border: none;
@@ -813,7 +861,7 @@ button, .btn {
     cursor: pointer;
     transition: all 0.3s;
     flex: 1;
-    max-width: 200px;
+    max-width: 100px;
     text-decoration: none; 
     display: inline-flex;
     align-items: center;
@@ -841,6 +889,7 @@ button, .btn {
     justify-content: center;
     flex: 1;
     max-width: 200px;
+    line-height: 1.6;
 }
 
 .btn-secondary:hover {
@@ -938,3 +987,104 @@ button, .btn {
         max-width: none;
     }
 }
+
+/* Admin page */
+.section { display: none; }
+.section.active { display: block; }
+
+.search-box {
+    position: relative;
+    margin-bottom: 20px;
+}
+.search-box input {
+    width: 100%;
+    padding: 14px 50px 14px 20px;
+    border: 2px solid #e8dff5;
+    border-radius: 16px;
+    background: #fafbfc;
+    font-size: 16px;
+}
+.search-box i {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary);
+}
+
+.card-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.profile-card {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.profile-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.avatar-initials {
+    width: 64px;
+    height: 64px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+.avatar-initials.student { background: var(--info); }
+
+.card-actions {
+    margin-top: 16px;
+    text-align: right;
+}
+
+.appointment-item {
+    padding: 18px 0;
+    border-bottom: 1px dashed #eee;
+}
+.appointment-item:last-child { border: none; }
+
+.sidebar-menu ul {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.logout-link {
+    color: var(--danger) !important;
+    font-weight: 600;
+    padding: 14px 10px !important;
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.logout-link:hover {
+    background: #ffebeb !important;
+    color: #c0392b !important;
+    transform: translateX(4px);
+}
+
+.logout-link i {
+    color: var(--danger);
+}
+
