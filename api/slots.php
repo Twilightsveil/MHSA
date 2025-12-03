@@ -20,8 +20,8 @@ while ($start < $end) {
     $datetime = date('Y-m-d H:i:s', $start);
 
     // Check if slot is taken
-    $check = $conn->prepare("SELECT 1 FROM appointments WHERE counselor_id = ? AND appointment_desc LIKE ?");
-    $check->execute([$counselor_id, $datetime . '%']);
+    $check = $conn->prepare("SELECT 1 FROM appointments WHERE counselor_id = ? AND appointment_date = ?");
+    $check->execute([$counselor_id, $datetime]);
     $taken = $check->fetchColumn();
 
     $slots[] = [
