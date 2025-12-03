@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 require_once 'db/connection.php';
@@ -27,6 +26,7 @@ $appointments = $conn->prepare("
         a.appointment_id,
         a.appointment_date, 
         a.Appointment_desc, 
+        a.status, /* <-- add status */
         c.fname, c.lname, c.mi 
     FROM appointments a 
     JOIN counselor c ON a.counselor_ID = c.counselor_id 
@@ -583,22 +583,36 @@ document.addEventListener('DOMContentLoaded', () => {
             <?php foreach($events as $e): 
                 $cname = trim($e['fname'] . ' ' . ($e['mi'] ? $e['mi'].'.' : '') . ' ' . $e['lname']);
                 $formatted = date('F j, Y \a\t g:i A', strtotime($e['appointment_date']));
+                $isApproved = isset($e['status']) && $e['status'] === 'approved';
             ?>
             {
                 title: 'Session with <?= htmlspecialchars($cname) ?>',
                 start: '<?= $e['appointment_date'] ?>',
-                color: '#8e44ad',
+                color: <?= $isApproved ? "'#27ae60'" : "'#8e44ad'" ?>,
                 textColor: 'white',
                 extendedProps: {
                     appointment_id: <?= (int)$e['appointment_id'] ?>,
                     counselor: '<?= htmlspecialchars($cname) ?>',
                     initials: '<?= strtoupper($e['fname'][0] . $e['lname'][0]) ?>',
                     datetime: '<?= $formatted ?>',
-                    reason: '<?= htmlspecialchars($e['Appointment_desc'] ?? 'Not specified') ?>'
+                    reason: '<?= htmlspecialchars($e['Appointment_desc'] ?? 'Not specified') ?>',
+                    status: '<?= isset($e['status']) ? $e['status'] : '' ?>'
                 }
             },
             <?php endforeach; ?>
         ],
+        eventContent: function(arg) {
+            var status = arg.event.extendedProps.status;
+            var dot = '';
+            if (status === 'approved') {
+                dot = '<span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>';
+            }
+            var time = arg.timeText ? arg.timeText + ' ' : '';
+            var title = arg.event.title.split(' - ')[0];
+            return {
+                html: '<span style="display:flex;align-items:center;">' + dot + '<span>' + time + title + '</span></span>'
+            };
+        },
 
         eventClick: function(info) {
             currentAppointmentId = info.event.extendedProps.appointment_id;

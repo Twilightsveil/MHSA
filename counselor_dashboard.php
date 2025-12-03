@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 require_once 'db/connection.php';
@@ -220,6 +219,47 @@ function toggleNotifDropdown(e) {
 
     </div>
     </div>
+<!-- Appointment Detail Modal (Counselor) -->
+<div class="modal" id="appointmentDetailModal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-modal" onclick="document.getElementById('appointmentDetailModal').style.display='none'">×</span>
+        <h3 style="text-align:center; margin-bottom:20px; color:var(--purple-dark);">Appointment Details</h3>
+        <div style="text-align:center; margin-bottom:25px;">
+            <div style="width:90px; height:90px; background:var(--primary); color:white; border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold;">
+                <span id="detailInitials"></span>
+            </div>
+            <h4 style="margin:10px 0; color:var(--text-dark);" id="detailStudent"></h4>
+        </div>
+        <div style="background:#f8f9fa; padding:15px; border-radius:12px; margin:15px 0;">
+            <p style="margin:8px 0;"><strong>Date & Time:</strong> <span id="detailDateTime" style="color:var(--primary);"></span></p>
+            <p style="margin:8px 0;"><strong>Reason:</strong> <span id="detailReason"></span></p>
+        </div>
+        <div style="text-align:center; margin-top:25px;">
+            <button class="btn" style="background:#27ae60; color:white;" onclick="approveAppointmentModal()">
+                Approve Appointment
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+let currentAppointmentId = null;
+function approveAppointmentModal() {
+    if (!currentAppointmentId || !confirm('Approve this appointment?')) return;
+    fetch('api/approve_appointment.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'appointment_id=' + encodeURIComponent(currentAppointmentId)
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('Appointment approved');
+            document.getElementById('appointmentDetailModal').style.display = 'none';
+            location.reload();
+        } else alert('Failed to approve');
+    });
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
     let calendar;
@@ -238,18 +278,48 @@ function toggleNotifDropdown(e) {
                     $name = trim("{$apt['fname']} {$apt['mi']} {$apt['lname']}");
                     $title = "{$name} - " . htmlspecialchars($apt['appointment_desc']);
                     $color = ($apt['status'] === 'approved') ? '#27ae60' : 'var(--primary)';
+                    $initials = strtoupper(($apt['fname'][0] ?? 'S') . ($apt['lname'][0] ?? 'T'));
+                    $datetime = date('F j, Y \a\t g:i A', strtotime($apt['appointment_date']));
                 ?>
-                { 
-                    id: '<?= $apt['appointment_id'] ?>', 
-                    title: '<?= $title ?>', 
+                {
+                    id: '<?= $apt['appointment_id'] ?>',
+                    title: '<?= $title ?>',
                     start: '<?= $apt['appointment_date'] ?>',
-                    color: '<?= $color ?>' 
+                    color: '<?= $color ?>',
+                    textColor: 'white',
+                    extendedProps: {
+                        appointment_id: '<?= $apt['appointment_id'] ?>',
+                        student: '<?= htmlspecialchars($name) ?>',
+                        initials: '<?= $initials ?>',
+                        datetime: '<?= $datetime ?>',
+                        reason: '<?= htmlspecialchars($apt['appointment_desc']) ?>',
+                        status: '<?= $apt['status'] ?>'
+                    }
                 },
                 <?php endforeach; ?>
             ],
+            eventContent: function(arg) {
+                var status = arg.event.extendedProps.status;
+                var dot = '';
+                if (status === 'approved') {
+                    dot = '<span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>';
+                }
+                var time = arg.timeText ? arg.timeText + ' ' : '';
+                var title = arg.event.title.split(' - ')[0];
+                return {
+                    html: '<span style="display:flex;align-items:center;">' + dot + '<span>' + time + title + '</span></span>'
+                };
+            },
             // Event Handlers for Edit/Drag
             eventClick: function(info) {
-                // openEditModal(info.event); // Re-implement your modal call here
+                // Use extendedProps for student details
+                const props = info.event.extendedProps || {};
+                document.getElementById('detailInitials').textContent = props.initials || 'ST';
+                document.getElementById('detailStudent').textContent = props.student || info.event.title || '';
+                document.getElementById('detailDateTime').textContent = props.datetime || (info.event.start ? new Date(info.event.start).toLocaleString() : '-');
+                document.getElementById('detailReason').textContent = props.reason || '-';
+                currentAppointmentId = props.appointment_id || info.event.id;
+                document.getElementById('appointmentDetailModal').style.display = 'flex';
             },
         });
         calendar.render();
