@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 require_once 'db/connection.php';
@@ -27,6 +26,7 @@ $appointments = $conn->prepare("
         a.appointment_id,
         a.appointment_date, 
         a.Appointment_desc, 
+        a.status, /* <-- add status */
         c.fname, c.lname, c.mi 
     FROM appointments a 
     JOIN counselor c ON a.counselor_ID = c.counselor_id 
@@ -226,28 +226,23 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
                 <?php endif; ?>
             </div>
         </div>
-        <!-- Profile Button -->        
-        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)" aria-controls="profileDropdown" aria-expanded="false" aria-label="Toggle profile menu">
+        <!-- Profile Button -->
+        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
             <div class="avatar"><i class="fas fa-user-graduate"></i></div>
         </button>
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
             <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
-                <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-graduate"></i></div>
+                <div class="avatar" style="width:40px;height:40px;"><i class="fas fa-user-graduate"></i></div>
                 <div class="info">
                     <div><?= htmlspecialchars($name) ?></div>
                     <small>Student</small>
                 </div>
             </div>
             <ul>
-                <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
-                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> Profile
-                </a></li>
-                <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
-                    <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
-                </a></li>
+                <li><a href="student_profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
+                <li><a href="logout.php" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </div>
-
     </div>
 </div>
 <?php
@@ -478,18 +473,16 @@ document.getElementById('datePicker').addEventListener('change', function() {
         .then(slots => {
             const container = document.getElementById('timeSlots');
             let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;">';
-            const availableSlots = slots.filter(s => !s.taken);
-
-            if (availableSlots.length === 0) {
-                html += '<p style="grid-column:1/-1;text-align:center;color:var(--danger);font-weight:600;">No available slots on this date</p>';
-            } else {
-                availableSlots.forEach(s => {
+            slots.forEach(s => {
+                if (s.taken) {
+                    html += `<div style="padding:12px;border-radius:12px;text-align:center;background:#fff;border:2px solid #e74c3c;color:#e74c3c;opacity:0.7;pointer-events:none;">${s.time}</div>`;
+                } else {
                     html += `<div style="padding:12px;border-radius:12px;text-align:center;background:#f3e8ff;border:2px solid var(--primary);cursor:pointer;" 
                                 onclick="selectSlot('${s.datetime}','${s.time}')">
                                 ${s.time}
                              </div>`;
-                });
-            }
+                }
+            });
             html += '</div>';
             container.innerHTML = html;
         });
@@ -588,22 +581,36 @@ document.addEventListener('DOMContentLoaded', () => {
             <?php foreach($events as $e): 
                 $cname = trim($e['fname'] . ' ' . ($e['mi'] ? $e['mi'].'.' : '') . ' ' . $e['lname']);
                 $formatted = date('F j, Y \a\t g:i A', strtotime($e['appointment_date']));
+                $isApproved = isset($e['status']) && $e['status'] === 'approved';
             ?>
             {
                 title: 'Session with <?= htmlspecialchars($cname) ?>',
                 start: '<?= $e['appointment_date'] ?>',
-                color: '#8e44ad',
+                color: <?= $isApproved ? "'#27ae60'" : "'#8e44ad'" ?>,
                 textColor: 'white',
                 extendedProps: {
                     appointment_id: <?= (int)$e['appointment_id'] ?>,
                     counselor: '<?= htmlspecialchars($cname) ?>',
                     initials: '<?= strtoupper($e['fname'][0] . $e['lname'][0]) ?>',
                     datetime: '<?= $formatted ?>',
-                    reason: '<?= htmlspecialchars($e['Appointment_desc'] ?? 'Not specified') ?>'
+                    reason: '<?= htmlspecialchars($e['Appointment_desc'] ?? 'Not specified') ?>',
+                    status: '<?= isset($e['status']) ? $e['status'] : '' ?>'
                 }
             },
             <?php endforeach; ?>
         ],
+        eventContent: function(arg) {
+            var status = arg.event.extendedProps.status;
+            var dot = '';
+            if (status === 'approved') {
+                dot = '<span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>';
+            }
+            var time = arg.timeText ? arg.timeText + ' ' : '';
+            var title = arg.event.title.split(' - ')[0];
+            return {
+                html: '<span style="display:flex;align-items:center;">' + dot + '<span>' + time + title + '</span></span>'
+            };
+        },
 
         eventClick: function(info) {
             currentAppointmentId = info.event.extendedProps.appointment_id;
