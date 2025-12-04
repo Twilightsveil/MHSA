@@ -11,7 +11,7 @@ $name = $_SESSION['fullname'];
 $firstName = explode(' ', $name)[0];
 $student_id = $_SESSION['user_id'];
 
-// Load notifications from file (if any) and merge into session
+// Load notifications from file
 $notif_file = __DIR__ . "/sessions/student_{$student_id}_notifs.json";
 if (file_exists($notif_file)) {
     $file_notifs = json_decode(file_get_contents($notif_file), true) ?: [];
@@ -20,7 +20,7 @@ if (file_exists($notif_file)) {
     file_put_contents($notif_file, json_encode([])); // clear file after loading
 }
 
-// Load appointments for main calendar
+// Load appointments
 $appointments = $conn->prepare("
     SELECT 
         a.appointment_id,
@@ -99,6 +99,25 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
             color: var(--primary);
             margin-bottom: 15px;
         }
+        
+        .action-cards .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;    
+            height: 100%;                        
+        }
+
+        .action-cards .card > * {
+            flex-shrink: 0;                      
+        }
+
+        .action-cards .card .btn {
+            margin-top: auto;                   
+            align-self: center;                  
+            width: 80%;                          
+            max-width: 200px;
+        }
+        
         .card h3 { margin: 15px 0 10px; color: var(--text-dark); font-size: 22px; }
         .card p { color: var(--text-light); margin-bottom: 20px; }
 
@@ -197,34 +216,68 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
     <div class="nav-right" style="display: flex; align-items: center; gap: 20px;">
         <!-- Notification Bell -->
         <div style="position: relative;">
-            <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;position:relative;">
-                <i class="fas fa-bell fa-lg"></i>
-                <?php if (!empty($_SESSION['student_notifications'])): ?>
-                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:12px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">
-                        <?= count($_SESSION['student_notifications']) ?>
-                    </span>
-                <?php endif; ?>
-            </button>
-            <div id="notifDropdown" class="profile-dropdown" style="min-width:260px;right:0;left:auto;display:none;position:absolute;z-index:1001;">
-                <div style="padding:10px 20px;font-weight:bold;border-bottom:1px solid #eee;">Notifications</div>
-                <ul style="max-height:300px;overflow-y:auto;padding:0;margin:0;list-style:none;">
-                    <?php if (!empty($_SESSION['student_notifications'])): ?>
-                        <?php foreach ($_SESSION['student_notifications'] as $i => $notif): ?>
-                            <li style="padding:12px 20px;border-bottom:1px solid #f5f5f5;">
-                                <?= htmlspecialchars($notif) ?>
-                            </li>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <li style="padding:12px 20px;color:#888;">No notifications</li>
-                    <?php endif; ?>
-                </ul>
-                <?php if (!empty($_SESSION['student_notifications'])): ?>
-                <form method="post" style="margin:0;text-align:center;">
-                    <input type="hidden" name="clear_student_notifications" value="1">
-                    <button type="submit" style="background:none;border:none;color:#6f42c1;cursor:pointer;padding:10px 0;font-size:14px;">Clear All</button>
-                </form>
-                <?php endif; ?>
+    <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;position:relative;font-size:22px;color:#333;">
+        <i class="fas fa-bell"></i>
+        <?php if (!empty($_SESSION['student_notifications'])): ?>
+            <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:11px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">
+                <?= count($_SESSION['student_notifications']) ?>
+            </span>
+        <?php endif; ?>
+    </button>
+
+    <!-- BEAUTIFUL DROPDOWN -->
+    <div id="notifDropdown" style="display:none;position:absolute;right:0;top:50px;background:white;box-shadow:0 15px 40px rgba(0,0,0,0.18);border-radius:16px;min-width:380px;max-height:80vh;overflow:hidden;z-index:1001;border:1px solid #eee;">
+        <div style="padding:18px 22px;font-weight:bold;background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;border-radius:16px 16px 0 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:18px;">Notifications</span>
+                <span style="background:rgba(255,255,255,0.25);padding:5px 12px;border-radius:20px;font-size:13px;">
+                    <?= count($_SESSION['student_notifications'] ?? []) ?> new
+                </span>
             </div>
+        </div>
+
+        <div style="max-height:460px;overflow-y:auto;">
+            <?php if (!empty($_SESSION['student_notifications'])): ?>
+                <?php foreach ($_SESSION['student_notifications'] as $n): 
+                    $msg = is_array($n) ? $n['message'] : $n;
+                    $details = is_array($n) ? ($n['details'] ?? '') : '';
+                    $time = is_array($n) ? ($n['time'] ?? 'Just now') : 'Just now';
+                ?>
+                    <div class="notif-item" style="padding:18px 22px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:16px;background:#faf8ff;transition:all 0.3s ease;">
+                        <div style="width:48px;height:48px;background:#27ae60;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;color:#2c3e50;font-size:15px;line-height:1.4;">
+                                <?= htmlspecialchars($msg) ?>
+                            </div>
+                            <?php if ($details): ?>
+                                <div style="color:#8e44ad;font-size:14px;margin-top:4px;">
+                                    <?= htmlspecialchars($details) ?>
+                                </div>
+                            <?php endif; ?>
+                            <div style="color:#95a5a6;font-size:13px;margin-top:6px;">
+                                <i class="fas fa-clock"></i> <?= $time ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div style="padding:80px 30px;text-align:center;color:#bdc3c7;">
+                    <i class="fas fa-bell-slash fa-3x mb-3"></i>
+                    <div style="font-size:16px;font-weight:500;">All caught up!</div>
+                    <div style="font-size:14px;margin-top:8px;">No new notifications</div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($_SESSION['student_notifications'])): ?>
+        <div style="padding:14px 22px;background:#f8f9fa;text-align:center;border-top:1px solid #eee;">
+            <a href="?clear_notifications=1" style="color:#8e44ad;font-weight:500;font-size:14px;">Clear all notifications</a>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
         </div>
         <!-- Profile Button -->
         <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
@@ -239,16 +292,11 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
             <ul>
-<<<<<<< HEAD
                 <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
                     <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
                 <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
                     <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
                 </a></li>
-=======
-                <li><a href="student_profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
-                <li><a href="logout.php" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
->>>>>>> 2a697edf60f22f13f8ac8b263facfa9e4ce43725
             </ul>
         </div>
     </div>
@@ -318,9 +366,9 @@ function toggleNotifDropdown(e) {
 </div>
 
 <!-- Floating Chat Button -->
-<div class="floating-chat" onclick="openCounselorChat()">
+<div class="floating-chat" id="chatFloatBtn">
     <i class="fas fa-comment-medical"></i>
-    <div class="badge">1</div>
+    <div class="badge" id="unreadBadge">0</div>
 </div>
 
 <!-- Booking Modal -->
@@ -370,17 +418,15 @@ function toggleNotifDropdown(e) {
 
 <!-- Emergency Chat Modal -->
 <div class="modal" id="emergencyChatModal">
-    <div class="modal-content">
-        <div class="chat-header">
-            <h4>Crisis Support</h4>
-            <span class="close-modal" onclick="closeModal('emergencyChatModal')">×</span>
+    <div class="modal-content" style="height: 90vh; max-width: 500px; display:flex; flex-direction:column;">
+        <div class="chat-header" style="background:#e74c3c;color:white;padding:15px;border-radius:20px 20px 0 0;text-align:center;position:relative;">
+            <h4 style="margin:0;">Crisis Support • AI Assistant</h4>
+            <span class="close-modal" onclick="closeModal('emergencyChatModal')" style="color:white;">×</span>
         </div>
-        <div id="emergencyMessages" class="chat-container">
-            <p style="text-align:center;padding-top:20px;color:var(--text-light);">Connecting to support...</p>
-        </div>
-        <div style="display:flex;gap:10px;padding:15px;">
-            <input type="text" placeholder="Type your message..." style="flex:1;">
-            <button class="btn small">Send</button>
+        <div id="emergencyMessages" class="chat-container" style="flex:1;overflow-y:auto;padding:20px;background:#fff8f8;"></div>
+        <div style="padding:15px;background:white;border-top:1px solid #eee;display:flex;gap:10px;">
+            <input type="text" id="emergencyInput" placeholder="I'm here to help. How are you feeling?" style="flex:1;padding:12px;border-radius:12px;border:1px solid #ddd;">
+            <button class="btn small" style="background:#e74c3c;" onclick="sendEmergencyMessage()">Send</button>
         </div>
     </div>
 </div>
@@ -652,10 +698,34 @@ function cancelAppointment() {
     });
 }
 
-function openCounselorChat() {
-    alert("Opening chat with your counselor...");
-    // Future: open real chat modal
+<?php
+// Clear notifications
+if (isset($_GET['clear_notifications'])) {
+    $notif_file = __DIR__ . "/sessions/student_{$student_id}_notifs.json";
+    if (file_exists($notif_file)) unlink($notif_file);
+    $_SESSION['student_notifications'] = [];
+    echo "<script>location.href = location.href.split('?')[0];</script>";
 }
+?>
+
+function openCounselorChatModal() {
+    window.location = 'chat.php?with=C1';
+}
+
+// Update unread count
+function updateChatBadge() {
+    fetch('api/unread_count.php')
+        .then(r => r.json())
+        .then(d => {
+            const badge = document.getElementById('unreadBadge');
+            badge.textContent = d.count > 99 ? '99+' : d.count;
+            badge.style.display = d.count > 0 ? 'flex' : 'none';
+        });
+}
+setInterval(updateChatBadge, 5000);
+updateChatBadge();
+
+document.getElementById('chatFloatBtn').onclick = openCounselorChatModal;
 </script>
 </body>
 </html>

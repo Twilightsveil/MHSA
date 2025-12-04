@@ -1,37 +1,70 @@
 <?php
+// api/approve_appointment.php
 session_start();
 require_once '../db/connection.php';
-header('Content-Type: application/json');
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'counselor') {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
-$appointment_id = $_POST['appointment_id'] ?? 0;
+$input = json_decode(file_get_contents('php://input'), true);
+$appointment_id = $input['appointment_id'] ?? $_POST['appointment_id'] ?? 0;
+
 if (!$appointment_id) {
-    echo json_encode(['success' => false, 'message' => 'Invalid appointment ID']);
+    echo json_encode(['success' => false, 'message' => 'No appointment ID']);
     exit;
 }
 
-// Approve the appointment (set a status column, assumed to exist)
-$stmt = $conn->prepare("UPDATE appointments SET status = 'approved' WHERE appointment_id = ?");
-$success = $stmt->execute([$appointment_id]);
+// Get appointment + student info
+$stmt = $conn->prepare("
+    SELECT a.*, s.student_id, CONCAT(s.fname, ' ', COALESCE(CONCAT(s.mi,'.'), ''), ' ', s.lname) as student_name
+    FROM appointments a
+    JOIN student s ON a.student_id = s.student_id
+    WHERE a.appointment_id = ?
+");
+$stmt->execute([$appointment_id]);
+$appt = $stmt->fetch();
 
-if ($success) {
-    // Get student ID for this appointment
-    $stmt2 = $conn->prepare("SELECT student_id FROM appointments WHERE appointment_id = ?");
-    $stmt2->execute([$appointment_id]);
-    $student_id = $stmt2->fetchColumn();
-    if ($student_id) {
-        // Store notification in file for student
-        $notif_file = __DIR__ . "/../sessions/student_{$student_id}_notifs.json";
-        $notifs = file_exists($notif_file) ? json_decode(file_get_contents($notif_file), true) : [];
-        $counselor_name = isset($_SESSION['fullname']) ? $_SESSION['fullname'] : 'Your counselor';
-        $notifs[] = "$counselor_name approved your appointment.";
-        file_put_contents($notif_file, json_encode($notifs));
-    }
+if (!$appt) {
+    echo json_encode(['success' => false, 'message' => 'Appointment not found']);
+    exit;
 }
 
-echo json_encode(['success' => $success]);
+// Update status to approved
+$update = $conn->prepare("UPDATE appointments SET status = 'approved' WHERE appointment_id = ?");
+$success = $update->execute([$appointment_id]);
+
+if ($success) {
+    // === SEND NOTIFICATION TO STUDENT ===
+    $student_id = $appt['student_id'];
+    $student_name = $appt['student_name'];
+    $counselor_name = $_SESSION['fullname'];
+    $datetime = date('M j \a\t g:i A', strtotime($appt['appointment_date']));
+
+    $notif_file = __DIR__ . "/../sessions/student_{$student_id}_notifs.json";
+    $notifs = file_exists($notif_file) ? json_decode(file_get_contents($notif_file), true) : [];
+
+    $notifs[] = [
+        'type' => 'appointment_approved',
+        'message' => "Your appointment with {$counselor_name} has been approved!",
+        'details' => "Date: {$datetime}",
+        'time' => date('M j, g:i A'),
+        'read' => false
+    ];
+
+    file_put_contents($notif_file, json_encode($notifs));
+
+    // Optional: Remove from counselor's pending list (clean up)
+    $counselor_notif_file = __DIR__ . "/../sessions/counselor_{$_SESSION['user_id']}_notifs.json";
+    if (file_exists($counselor_notif_file)) {
+        $cnotifs = json_decode(file_get_contents($counselor_notif_file), true) ?: [];
+        $cnotifs = array_filter($cnotifs, fn($n) => ($n['appointment_id'] ?? 0) != $appointment_id);
+        file_put_contents($counselor_notif_file, json_encode(array_values($cnotifs)));
+    }
+
+    echo json_encode(['success' => true]);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Failed to approve']);
+}
 ?>

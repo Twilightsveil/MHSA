@@ -137,6 +137,13 @@ a.link:hover {
    
     <div class="main-content">
 
+    <div style="margin-bottom: 35px;">
+        <a href="student_dashboard.php" class="btn" style="display:inline-flex; align-items:center; gap:12px;">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+    
     <div class="page-title">
         <h1>Hello, <?= htmlspecialchars($firstName) ?>!</h1>
         <p class="subtitle">Here are some tools and resources to support your well-being.</p>

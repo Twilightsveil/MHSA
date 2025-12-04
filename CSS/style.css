@@ -674,6 +674,7 @@ button, .btn {
     .card-grid {
         grid-template-columns: 1fr;
     }
+
     .widget { padding: 20px; }
 }
 
