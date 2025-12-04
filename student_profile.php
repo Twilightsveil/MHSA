@@ -81,10 +81,10 @@ $current_page = 'profile';
         </button>
         
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
-                <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-graduate"></i></div>
+            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:12px 10px;border-radius:16px 16px 0 0;background: #8e44ad;">
+                <div class="avatar" style=" width:20px;height:20px;"><i class="fas fa-user-graduate"></i></div>
                 <div class="info">
-                    <div><?= htmlspecialchars($fullname) ?></div>
+                    <div class="info-name"><?= htmlspecialchars($fullname) ?></div>
                     <small>Student</small>
                 </div>
             </div>
@@ -114,7 +114,7 @@ $current_page = 'profile';
                         <i class="fa-solid fa-id-card"></i>
                         Student ID: <?= htmlspecialchars($student_id) ?>
                     </div>
-                    <div class="status-badge" style="background: rgba(142, 68, 173, 0.2); color: #f7f6f8ff;">
+                    <div class="status-badge" style="background: #27ae60; color: #f6f8f6ff;">
                          <i class="fa-solid fa-circle" style="font-size: 8px;"></i>
                         Active Student
                     </div>

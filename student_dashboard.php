@@ -284,10 +284,10 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
             <div class="avatar"><i class="fas fa-user-graduate"></i></div>
         </button>
          <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
-                <div class="avatar" style="width:40px;height:40px;"><i class="fas fa-user-graduate"></i></div>
+            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:12px 10px;border-radius:16px 16px 0 0;background: #8e44ad;">
+                <div class="avatar" style=" width:20px;height:20px;"><i class="fas fa-user-graduate"></i></div>
                 <div class="info">
-                    <div><?= htmlspecialchars($name) ?></div>
+                    <div class="info-name"><?= htmlspecialchars($name) ?></div>
                     <small>Student</small>
                 </div>
             </div>

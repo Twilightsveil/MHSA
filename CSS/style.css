@@ -192,8 +192,8 @@ button, .btn {
     position: absolute;
     top: calc(var(--profile-btn-size, 40px) + 15px);
     right: 0;
+    color: white;
     background: white;
-    border-radius: 12px;
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     width: 250px;
     z-index: 101;
@@ -207,16 +207,25 @@ button, .btn {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    border-radius: 20px 20px;
 }
+
 .profile-dropdown ul {
     list-style: none;
     padding: 8px 0;
 }
 .profile-dropdown a:hover {
-    background: var(--purple-lightest);
+    background:#E8DAF0;
+    
 }
+.profileDropdown .info-name {
+    color: white;
+    font-weight: 500;
+}
+
 .profile-dropdown .info small {
-    color: var(--text-light);
+    color: white;
+    font-weight: 200;
 }
 
 
