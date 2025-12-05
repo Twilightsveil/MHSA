@@ -11,13 +11,13 @@ $name = $_SESSION['fullname'];
 $firstName = explode(' ', $name)[0];
 $student_id = $_SESSION['user_id'];
 
-// Load notifications from file
+// Load notifications
 $notif_file = __DIR__ . "/sessions/student_{$student_id}_notifs.json";
 if (file_exists($notif_file)) {
     $file_notifs = json_decode(file_get_contents($notif_file), true) ?: [];
     if (!isset($_SESSION['student_notifications'])) $_SESSION['student_notifications'] = [];
     $_SESSION['student_notifications'] = array_merge($_SESSION['student_notifications'], $file_notifs);
-    file_put_contents($notif_file, json_encode([])); // clear file after loading
+    file_put_contents($notif_file, json_encode([]));
 }
 
 // Load appointments
@@ -357,11 +357,16 @@ function toggleNotifDropdown(e) {
         </div>
     </div>
 
-    <!-- Big Calendar -->
-    <div id="calendar-container">
-        <h2><i class="fas fa-calendar-alt"></i> My Appointments Calendar</h2>
-        <div id="calendar"></div>
+   <!-- Big Calendar -->
+    <h2 style="text-align: center;"><i class="fas fa-calendar-alt"></i> My Appointments Calendar</h2>
+<div id="calendar-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <button class="btn" onclick="openStudentAppointmentsPanel()" style="padding:12px 24px; font-size:16px;">
+            <i class="fas fa-list-ul"></i> View All Appointments
+        </button>
     </div>
+    <div id="calendar"></div>
+</div>
 
 </div>
 
@@ -726,6 +731,208 @@ setInterval(updateChatBadge, 5000);
 updateChatBadge();
 
 document.getElementById('chatFloatBtn').onclick = openCounselorChatModal;
+
+let currentFeedbackApptId = null;
+
+function openStudentAppointmentsPanel() {
+    fetch('api/get_student_appointments.php')
+        .then(r => r.json())
+        .then(data => {
+            const body = document.getElementById('studentApptBody');
+            if (!data.appointments || data.appointments.length === 0) {
+                body.innerHTML = `<div style="text-align:center;padding:120px;color:#888;"><i class="fas fa-calendar-times fa-4x"></i><h3>No appointments yet</h3></div>`;
+                return;
+            }
+
+            let html = '';
+            data.appointments.forEach(a => {
+                const initials = (a.counselor_name.match(/\b\w/g) || []).slice(0,2).join('').toUpperCase();
+                const date = new Date(a.appointment_date).toLocaleString('en-US', { weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+                const statusColor = a.status === 'approved' ? '#27ae60' : a.status === 'done' ? '#3498db' : '#8e44ad';
+                const statusText = a.status === 'done' ? 'Completed' : a.status === 'approved' ? 'Approved' : 'Pending';
+
+                html += `
+                <div class="appt-card" style="background:white;border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 8px 25px rgba(0,0,0,0.12);border-left:6px solid ${statusColor};">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <div style="font-weight:bold;color:#2c3e50;">${date}</div>
+                        <span style="padding:6px 14px;border-radius:30px;font-size:13px;font-weight:bold;color:white;background:${statusColor};">${statusText}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:14px;margin:14px 0;">
+                        <div style="width:56px;height:56px;background:#8e44ad;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;">
+                            ${initials}
+                        </div>
+                        <div>
+                            <strong>${a.counselor_name}</strong><br>
+                            <small>Guidance Counselor</small>
+                        </div>
+                    </div>
+                    <div style="background:#f5f0ff;padding:12px;border-radius:12px;font-size:14.5px;">
+                        <strong>Reason:</strong> ${a.Appointment_desc || 'Not specified'}
+                    </div>
+                    ${a.status === 'done' && !a.feedback_given ? `
+                    <div style="margin-top:16px;text-align:center;">
+                        <button class="btn" style="background:#27ae60;" onclick="openFeedbackModal(${a.appointment_id})">
+                            Leave Feedback
+                        </button>
+                    </div>` : a.status === 'done' ? `<small style="color:#27ae60;display:block;margin-top:12px;text-align:center;"><i class="fas fa-check"></i> Feedback submitted</small>` : ''}
+                </div>`;
+            });
+            body.innerHTML = html;
+        });
+
+    document.getElementById('studentAppointmentsPanel').style.right = '0';
+    document.getElementById('studentApptOverlay').style.display = 'block';
+}
+
+function closeStudentAppointmentsPanel() {
+    document.getElementById('studentAppointmentsPanel').style.right = '-520px';
+    document.getElementById('studentApptOverlay').style.display = 'none';
+}
+
+function openFeedbackModal(appt_id) {
+    currentFeedbackApptId = appt_id;
+    selectedRating = 0;
+    
+    // Reset stars
+    document.querySelectorAll('.star').forEach(star => {
+        star.style.color = '#ddd';
+    });
+    document.getElementById('ratingText').textContent = 'Tap a star to rate';
+    document.getElementById('ratingText').style.color = '#888';
+    document.getElementById('feedbackText').value = '';
+
+    // Close the appointments panel + open feedback modal
+    closeStudentAppointmentsPanel();
+    document.getElementById('feedbackModal').style.display = 'flex';
+}
+
+function setRating(rating) {
+    selectedRating = rating;
+    const stars = document.querySelectorAll('.star');
+    const ratingTexts = [
+        '', 
+        'Very dissatisfied', 
+        'Dissatisfied', 
+        'Neutral', 
+        'Satisfied', 
+        'Very satisfied'
+    ];
+    const ratingColors = ['#e74c3c', '#e67e22', '#f39c12', '#27ae60', '#27ae60'];
+
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.style.color = ratingColors[rating - 1];
+        } else {
+            star.style.color = '#ddd';
+        }
+    });
+
+    document.getElementById('ratingText').textContent = ratingTexts[rating];
+    document.getElementById('ratingText').style.color = ratingColors[rating - 1];
+}
+
+// Optional: Hover effect
+document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('mouseenter', function() {
+        if (selectedRating === 0) {
+            const value = this.dataset.value;
+            document.querySelectorAll('.star').forEach((s, i) => {
+                s.style.color = i < value ? '#f39c12' : '#ddd';
+            });
+        }
+    });
+});
+
+document.querySelector('.star-rating').addEventListener('mouseleave', function() {
+    if (selectedRating === 0) {
+        document.querySelectorAll('.star').forEach(s => s.style.color = '#ddd');
+        document.getElementById('ratingText').textContent = 'Tap a star to rate';
+        document.getElementById('ratingText').style.color = '#888';
+    }
+});
+
+function submitFeedback() {
+    if (selectedRating === 0) {
+        alert('Please select a star rating');
+        return;
+    }
+
+    const comment = document.getElementById('feedbackText').value.trim();
+
+    fetch('api/submit_feedback.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            appointment_id: currentFeedbackApptId,
+            rating: selectedRating,
+            comment: comment
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert('Thank you so much for your feedback! It helps us improve.');
+            document.getElementById('feedbackModal').style.display = 'none';
+            // Optionally reopen panel to see updated status
+            setTimeout(() => openStudentAppointmentsPanel(), 400);
+        } else {
+            alert('Failed to submit. Please try again.');
+        }
+    });
+}
 </script>
+
+<!-- Student Appointments Panel -->
+<div id="studentAppointmentsPanel" style="position:fixed;top:0;right:-520px;width:500px;height:100vh;background:white;box-shadow:-15px 0 50px rgba(0,0,0,0.3);z-index:1100;transition:right 0.45s cubic-bezier(0.25,0.8,0.25,1);display:flex;flex-direction:column;font-family:'Segoe UI',sans-serif;">
+    <div style="background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;padding:22px 25px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 15px rgba(0,0,0,0.15);">
+        <h3 style="margin:0;font-size:24px;font-weight:600;">My Appointments</h3>
+        <span onclick="closeStudentAppointmentsPanel()" style="font-size:36px;cursor:pointer;opacity:0.9;transition:0.3s;" onmouseover="this.style.opacity=1;this.style.transform='rotate(90deg)'" onmouseout="this.style.opacity=0.9;this.style.transform='none'">×</span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;background:#f8f9fa;" id="studentApptBody">
+        <div style="text-align:center;padding:100px 20px;color:#888;">
+            <i class="fas fa-spinner fa-spin fa-4x"></i><br><br>Loading your appointments...
+        </div>
+    </div>
+</div>
+<div id="studentApptOverlay" onclick="closeStudentAppointmentsPanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1099;"></div>
+
+<!-- Feedback Modal -->
+<div class="modal" id="feedbackModal">
+    <div class="modal-content" style="max-width:520px;">
+        <span class="close-modal" onclick="document.getElementById('feedbackModal').style.display='none'">×</span>
+        <h3 style="text-align:center;color:#8e44ad;margin-bottom:20px;">How was your session?</h3>
+        
+        <div style="text-align:center;margin:30px 0;">
+            <p style="font-size:18px;margin-bottom:25px;color:#444;">
+                How satisfied were you with your counseling session?
+            </p>
+            
+            <!-- Star Rating -->
+            <div class="star-rating" style="display:flex;justify-content:center;gap:12px;margin:25px 0;font-size:42px;">
+                <span class="star" data-value="1" onclick="setRating(1)">★</span>
+                <span class="star" data-value="2" onclick="setRating(2)">★</span>
+                <span class="star" data-value="3" onclick="setRating(3)">★</span>
+                <span class="star" data-value="4" onclick="setRating(4)">★</span>
+                <span class="star" data-value="5" onclick="setRating(5)">★</span>
+            </div>
+            
+            <div style="margin:20px 0;">
+                <span id="ratingText" style="font-size:19px;color:#8e44ad;font-weight:600;">
+                    Tap a star to rate
+                </span>
+            </div>
+        </div>
+
+        <textarea id="feedbackText" placeholder="Share more about your experience (optional, but really helps us improve)..." 
+                  style="width:100%;height:130px;padding:16px;border-radius:14px;border:2px solid #eee;font-size:15.5px;margin-bottom:20px;font-family:inherit;"></textarea>
+        
+        <div style="text-align:center;">
+            <button class="btn" onclick="submitFeedback()" style="padding:14px 32px;font-size:16px;">
+                Submit Feedback
+            </button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

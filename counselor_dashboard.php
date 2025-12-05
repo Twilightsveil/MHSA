@@ -175,7 +175,6 @@ $pending_count = $pending->fetchColumn();
 </head>
 <body>
 
-<!-- NAVBAR WITH WORKING NOTIFICATIONS -->
 <div class="navbar">
     <div class="logo">Counselor Portal</div>
     <div class="nav-right" style="display:flex;align-items:center;gap:20px;">
@@ -189,7 +188,6 @@ $pending_count = $pending->fetchColumn();
                 <?php endif; ?>
             </button>
 
-            <!-- NOTIFICATION DROPDOWN -->
             <div id="notifDropdown" style="display:none;position:absolute;right:0;top:55px;background:white;box-shadow:0 15px 40px rgba(0,0,0,0.18);border-radius:16px;min-width:400px;max-height:85vh;overflow:hidden;z-index:1001;border:1px solid #eee;">
     <div style="padding:18px 22px;font-weight:bold;border-bottom:1px solid #eee;background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;border-radius:16px 16px 0 0;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -242,7 +240,6 @@ $pending_count = $pending->fetchColumn();
         <?php endif; ?>
     </div>
 
-    <!-- Optional: Clear all button -->
     <?php if (!empty($_SESSION['counselor_notifications'])): ?>
     <div style="padding:12px 22px;background:#f8f9fa;text-align:center;border-top:1px solid #eee;">
         <a href="javascript:void(0)" onclick="clearAllNotifications()" style="color:#8e44ad;font-size:14px;font-weight:500;">Clear all notifications</a>
@@ -251,7 +248,6 @@ $pending_count = $pending->fetchColumn();
 </div>
         </div>
 
-        <!-- Profile Dropdown -->
         <button id="profileBtn" onclick="toggleProfileDropdown(event)" style="background:none;border:none;cursor:pointer;">
             <div style="width:40px;height:40px;background:#8e44ad;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">
                 <i class="fas fa-user-tie"></i>
@@ -275,7 +271,6 @@ $pending_count = $pending->fetchColumn();
     </div>
 </div>
 
-<!-- MAIN LAYOUT -->
 <div class="dashboard-container">
     <aside class="sidebar">
         <h2>Main Menu</h2>
@@ -316,7 +311,6 @@ $pending_count = $pending->fetchColumn();
     </div>
 </div>
 
-<!-- DETAIL MODAL -->
 <div class="modal" id="appointmentDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1200;align-items:center;justify-content:center;">
     <div class="modal-content" style="background:white;border-radius:18px;max-width:500px;width:90%;padding:30px;position:relative;">
         <span onclick="this.closest('.modal').style.display='none'" style="position:absolute;top:15px;right:20px;font-size:32px;cursor:pointer;color:#aaa;">×</span>
@@ -339,7 +333,7 @@ $pending_count = $pending->fetchColumn();
     </div>
 </div>
 
-<!-- ALL APPOINTMENTS PANEL (SLIDES FROM RIGHT) -->
+<!-- Appointments panel -->
 <div id="counselorAllAppointmentsPanel">
     <div id="allApptHeader">
         <h3>All Appointments</h3>
