@@ -252,7 +252,7 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
                                 <?= htmlspecialchars($msg) ?>
                             </div>
                             <?php if ($details): ?>
-                                <div style="color:#8e44ad;font-size:14px;margin-top:4px;">
+                                <div style="color:white;font-size:14px;margin-top:4px;">
                                     <?= htmlspecialchars($details) ?>
                                 </div>
                             <?php endif; ?>

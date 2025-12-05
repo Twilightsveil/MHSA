@@ -182,7 +182,7 @@ $pending_count = $pending->fetchColumn();
             <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;font-size:22px;">
                 <i class="fas fa-bell"></i>
                 <?php if (!empty($_SESSION['counselor_notifications'])): ?>
-                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:11px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:black;font-size:11px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
                         <?= count($_SESSION['counselor_notifications']) ?>
                     </span>
                 <?php endif; ?>
@@ -254,13 +254,13 @@ $pending_count = $pending->fetchColumn();
             </div>
         </button>
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true" style="position:absolute;right:20px;top:70px;background:white;box-shadow:0 10px 30px rgba(0,0,0,0.2);border-radius:12px;width:240px;z-index:1001;">
-            <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
-                <div style="width:44px;height:44px;background:#8e44ad;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <div style="padding:16px 20px;border-bottom:1px solid #eee;background:#8e44ad;display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;background:#cccccc;color:white;border-radius:20%;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-user-tie"></i>
                 </div>
                 <div>
                     <div style="font-weight:600;"><?= htmlspecialchars($counselor_name) ?></div>
-                    <small style="color:#8e44ad;">Counselor</small>
+                    <small style="color:white;">Counselor</small>
                 </div>
             </div>
             <ul style="margin:0;padding:0;list-style:none;">

@@ -92,7 +92,7 @@ $current_page = 'profile';
         </button>
         
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);">
+            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:15px 20px;border-bottom:1px solid var(--purple-lightest);background:#8e44ad">
                 <div class="avatar" style="width:40px;height:40px;flex-shrink:0;"><i class="fas fa-user-tie"></i></div>
                 <div class="info">
                     <div><?= htmlspecialchars($fullname) ?></div>
@@ -149,7 +149,7 @@ $current_page = 'profile';
                         <i class="fa-solid fa-id-card"></i>
                         Counselor ID: <?= htmlspecialchars($counselor_id) ?>
                     </div>
-                    <div class="status-badge" style="background: rgba(142, 68, 173, 0.2); color: #8e44ad;">
+                    <div class="status-badge" style="background: rgba(115, 117, 116, 0.7); color:white;">
                          <i class="fa-solid fa-briefcase" style="font-size: 10px;"></i>
                         <?= val('department') ?: 'Guidance Department' ?>
                     </div>

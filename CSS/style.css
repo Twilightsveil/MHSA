@@ -318,7 +318,7 @@ button, .btn {
 }
 
 /* PAGE CONTENT */
-.page-title { margin-bottom: 25px; }
+.page-title { margin-bottom: 25px; color:black; }
 
 .emergency {
     background: var(--danger);
@@ -628,6 +628,7 @@ button, .btn {
     border-color: var(--primary) !important;
     border-radius: 6px;
     font-weight: 500;
+    color: white;
 }
 .fc-button {
     background-color: var(--primary) !important;
