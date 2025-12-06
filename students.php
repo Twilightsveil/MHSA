@@ -282,6 +282,14 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <div class="main-content">
+
+<div style="margin-bottom: 35px;">
+        <a href="counselor_dashboard.php" class="btn" style="display:inline-flex; align-items:center; gap:12px;">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+
     <div class="page-title">
         <h1>All Students</h1>
         <p>Manage student profiles and information</p>
