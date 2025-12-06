@@ -206,6 +206,15 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
             color: #aaa; 
         }
         .close-modal:hover { color: #000; }
+
+        #counselorNextBtn:not(:disabled) {
+    opacity: 1 !important;
+    cursor: pointer !important;
+}
+#counselorNextBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
     </style>
 </head>
 <body>
@@ -389,7 +398,9 @@ function toggleNotifDropdown(e) {
         <div id="step1Content">
             <p style="text-align:center;color:var(--text-light);margin:20px 0;">Choose a counselor:</p>
             <div id="counselorGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0;"></div>
-            <button class="btn" id="counselorNextBtn" disabled style="width:100%;">Next: Choose Date</button>
+            <button class="btn" id="counselorNextBtn" disabled style="width:100%; opacity:0.6; cursor:not-allowed;">
+                Next: Choose Date & Time
+            </button>
         </div>
 
         <div id="step2Content" style="display:none;">
@@ -483,43 +494,83 @@ function nextStep(n) {
 
 function loadCounselors() {
     const grid = document.getElementById('counselorGrid');
-    grid.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-light);">Loading...</p>';
+    grid.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">Loading counselors...</p>';
 
     fetch('api/get_counselors.php')
         .then(r => r.json())
         .then(counselors => {
+            if (!counselors || counselors.length === 0) {
+                grid.innerHTML = '<p style="text-align:center;color:#e74c3c;">No counselors available.</p>';
+                return;
+            }
+
             let html = '';
             counselors.forEach(c => {
-                const initials = (c.fname[0] + c.lname[0]).toUpperCase();
+                const initials = (c.fname[0] + (c.lname?.[0] || '')).toUpperCase();
                 const name = [c.fname, c.mi ? c.mi + '.' : '', c.lname].filter(Boolean).join(' ');
-                html += `<div class="counselor-card" data-id="${c.counselor_id}" data-name="${name}" data-initials="${initials}"
-                    style="border:2px solid #eee;border-radius:16px;padding:20px;text-align:center;cursor:pointer;background:white;">
-                    <div style="width:70px;height:70px;background:var(--primary);color:white;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;">
-                        ${initials}
-                    </div>
-                    <h4>${name}</h4>
-                    <small>${c.title || 'Guidance Counselor'}</small>
-                </div>`;
+                html += `
+                    <div class="counselor-card" 
+                         data-id="${c.counselor_id}" 
+                         data-name="${name}" 
+                         data-initials="${initials}"
+                         style="border:2px solid #eee;border-radius:16px;padding:20px;text-align:center;cursor:pointer;background:white;transition:all 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+                        <div style="width:70px;height:70px;background:var(--primary);color:white;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;">
+                            ${initials}
+                        </div>
+                        <h4 style="margin:10px 0 5px;font-size:18px;">${name}</h4>
+                        <small style="color:#777;">Guidance Counselor</small>
+                    </div>`;
             });
             grid.innerHTML = html;
 
+            // RE-ATTACH CLICK EVENTS AFTER HTML IS LOADED
             document.querySelectorAll('#counselorGrid .counselor-card').forEach(card => {
                 card.addEventListener('click', function() {
+                    // Deselect all
                     document.querySelectorAll('#counselorGrid .counselor-card').forEach(el => {
                         el.style.borderColor = '#eee';
                         el.style.background = 'white';
+                        el.style.boxShadow = '0 4px 15px rgba(0,0,0,0.05)';
                     });
+
+                    // Select this one
                     this.style.borderColor = 'var(--primary)';
                     this.style.background = '#f3e8ff';
+                    this.style.boxShadow = '0 10px 30px rgba(142,68,173,0.2)';
 
+                    // Store selection
                     selectedCounselor = {
                         id: this.dataset.id,
                         name: this.dataset.name,
                         initials: this.dataset.initials
                     };
-                    document.getElementById('counselorNextBtn').disabled = false;
+
+                    // ENABLE NEXT BUTTON — THIS WAS THE MAIN BUG!
+                    const nextBtn = document.getElementById('counselorNextBtn');
+                    if (nextBtn) {
+                        nextBtn.disabled = false;
+                        nextBtn.style.opacity = '1';
+                        nextBtn.style.cursor = 'pointer';
+                        nextBtn.textContent = 'Next: Choose Date & Time';
+                    }
                 });
             });
+
+            // Setup Next button click
+            const nextBtn = document.getElementById('counselorNextBtn');
+            if (nextBtn) {
+                nextBtn.onclick = () => {
+                    if (!selectedCounselor) {
+                        alert('Please select a counselor first.');
+                        return;
+                    }
+                    nextStep(2);
+                };
+            }
+        })
+        .catch(err => {
+            console.error('Error loading counselors:', err);
+            grid.innerHTML = '<p style="text-align:center;color:#e74c3c;">Failed to load counselors.</p>';
         });
 }
 
