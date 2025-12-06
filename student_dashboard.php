@@ -712,7 +712,7 @@ if (isset($_GET['clear_notifications'])) {
 }
 ?>
 
-// Open chat with the student's counselor (from approved appointment)
+// Open chat with the student's counselor
 async function openChatWithCounselor() {
     try {
         const res = await fetch('api/get_my_counselor.php');
