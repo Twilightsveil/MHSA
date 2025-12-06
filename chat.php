@@ -2,152 +2,201 @@
 session_start();
 require_once 'db/connection.php';
 
-if (!isset($_SESSION['user_id']) || !isset($_GET['with'])) {
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['counselor', 'student'])) {
     header("Location: login.php");
     exit;
 }
 
-$current_user_id = $_SESSION['user_id'];
-$chat_with_id = (int)$_GET['with'];
-$role = $_SESSION['role']; // 'student' or 'counselor'
+$user_id = $_SESSION['user_id'];
+$my_role = $_SESSION['role'];
+$with_id = $_GET['with'] ?? '';
 
-// Get chat partner info
-if ($role === 'student') {
-    $stmt = $conn->prepare("SELECT counselor_id as id, CONCAT(fname, ' ', COALESCE(mi,''), ' ', lname) as name FROM counselor WHERE counselor_id = ?");
-} else {
-    $stmt = $conn->prepare("SELECT student_id as id, CONCAT(fname, ' ', COALESCE(mi,''), ' ', lname) as name FROM student WHERE student_id = ?");
+if (!$with_id) {
+    die("<h2 style='text-align:center;margin-top:100px;color:#8e44ad;'>No chat partner selected</h2>");
 }
-$stmt->execute([$chat_with_id]);
+
+// Fetch partner name
+$partner_name = "User";
+$initials = "??";
+$partner_id = null;
+
+if ($my_role === 'counselor') {
+    $stmt = $conn->prepare("SELECT student_id AS id, CONCAT(TRIM(fname), ' ', COALESCE(mi,''), ' ', TRIM(lname)) AS name FROM student WHERE student_id = ?");
+} else {
+    $stmt = $conn->prepare("SELECT counselor_id AS id, CONCAT(TRIM(fname), ' ', COALESCE(mi,''), ' ', TRIM(lname)) AS name FROM counselor WHERE counselor_id = ?");
+}
+
+$stmt->execute([$with_id]);
 $partner = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$partner) {
-    die("User not found.");
+    die("<h2 style='text-align:center;margin-top:100px;color:#e74c3c;'>Chat partner not found</h2>");
 }
 
-$partner_name = $partner['name'];
 $partner_id = $partner['id'];
+$partner_name = trim(preg_replace('/\s+/', ' ', $partner['name']));
+$initials = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $partner_name), 0, 2));
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat with <?= htmlspecialchars($partner_name) ?></title>
-    <link rel="stylesheet" href="CSS/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+        :root {
+            --primary: #8e44ad;
+            --sent-bg: #8e44ad;
+            --sent-text: white;
+            --received-bg: white;
+            --received-text: #000;
+            --bg: #e5e5ea;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#e5e5ea; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+
         .chat-header {
-            background: #8e44ad;
-            color: white;
-            padding: 15px 20px;
-            font-size: 18px;
-            font-weight: 600;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            background: var(--primary); color:white; padding:12px 16px;
+            display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10;
+            box-shadow:0 1px 5px rgba(0,0,0,0.2);
         }
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background: #f8f9fa;
+        .back-btn { background:rgba(255,255,255,0.2); width:36px; height:36px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; }
+        .back-btn:hover { background:rgba(255,255,255,0.3); }
+
+        .partner-avatar { width:40px; height:40px; background:white; color:var(--primary);
+            border-radius:50%; display:flex; align-items:center; justify-content:center;
+            font-weight:bold; font-size:16px; }
+
+        .partner-info h3 { font-size:17px; font-weight:600; }
+        .partner-info small { font-size:13px; opacity:0.9; }
+
+        .messages-container {
+            flex:1; overflow-y:auto; padding:20px 14px; display:flex; flex-direction:column; gap:8px;
+            background:var(--bg);
         }
+
+        .message-wrapper {
+            max-width:80%; display:flex; flex-direction:column;
+        }
+        .sent { align-self:flex-end; }
+        .received { align-self:flex-start; }
+
         .message {
-            max-width: 70%;
-            margin-bottom: 15px;
-            padding: 10px 14px;
-            border-radius: 18px;
-            line-height: 1.4;
-            word-wrap: break-word;
+            padding:10px 16px; border-radius:18px; line-height:1.4; font-size:15.5px;
+            box-shadow:0 1px 2px rgba(0,0,0,0.15);
         }
-        .sent {
-            background: #8e44ad;
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
+        .sent .message {
+            background:var(--sent-bg); color:var(--sent-text);
+            border-bottom-right-radius:4px;
         }
-        .received {
-            background: white;
-            color: #333;
-            margin-right: auto;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .received .message {
+            background:var(--received-bg); color:var(--received-text);
+            border-bottom-left-radius:4px;
         }
-        .message-time {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 4px;
+
+        .message-meta {
+            font-size:11.5px; opacity:0.8; margin-top:4px; text-align:right;
         }
-        .chat-input {
-            padding: 15px;
-            background: white;
-            border-top: 1px solid #ddd;
-            display: flex;
-            gap: 10px;
+        .sent .message-meta { color:#e8c3ff; }
+        .received .message-meta { color:#666; text-align:left; }
+
+        .chat-input-area {
+            padding:12px 16px; background:white; display:flex; align-items:center; gap:12px;
+            box-shadow:0 -2px 10px rgba(0,0,0,0.1);
         }
-        #messageInput {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 25px;
-            font-size: 15px;
-            outline: none;
+        .message-input {
+            flex:1; padding:14px 18px; border:1px solid #ddd; border-radius:25px;
+            font-size:16px; outline:none; background:#f9f9f9;
         }
-        #sendBtn {
-            width: 48px;
-            height: 48px;
-            background: #8e44ad;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
+        .message-input:focus { border-color:var(--primary); background:white; }
+
+        .send-btn {
+            width:46px; height:46px; background:var(--primary); color:white; border:none;
+            border-radius:50%; font-size:18px; cursor:pointer; display:flex;
+            align-items:center; justify-content:center;
         }
+        .send-btn:hover { background:#6f42c1; }
     </style>
 </head>
 <body>
 
 <div class="chat-header">
-    <i class="fas fa-arrow-left" onclick="history.back()" style="cursor:pointer;margin-right:15px;"></i>
-    <?= htmlspecialchars($partner_name) ?>
+    <div class="back-btn" onclick="history.back()">Back</div>
+    <div class="partner-avatar"><?= $initials ?></div>
+    <div class="partner-info">
+        <h3><?= htmlspecialchars($partner_name) ?></h3>
+        <small>Active now</small>
+    </div>
 </div>
 
-<div class="chat-messages" id="messagesContainer">
-    <!-- Messages loaded here -->
+<div class="messages-container" id="messages">
+    <div style="text-align:center;color:#888;padding:40px;">Loading messages...</div>
 </div>
 
-<div class="chat-input">
-    <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
-    <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+<div class="chat-input-area">
+    <input type="text" class="message-input" id="messageInput" placeholder="Type a message..." autocomplete="off">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
 </div>
 
 <script>
-const currentUserId = <?= $current_user_id ?>;
-const chatWithId = <?= $partner_id ?>;
-const messagesContainer = document.getElementById('messagesContainer');
+const myId = '<?= $user_id ?>';
+const myRole = '<?= $my_role ?>';
+const partnerId = '<?= $partner_id ?>';
 let lastMessageId = 0;
 
-function loadMessages() {
-    fetch(`api/get_messages.php?with=${chatWithId}&last=${lastMessageId}`)
-        .then(r => r.json())
-        .then(data => {
-            data.messages.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = 'message ' + (msg.sender_id == currentUserId ? 'sent' : 'received');
-                div.innerHTML = `
-                    ${msg.message}
-                    <div class="message-time">${new Date(msg.sent_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                `;
-                messagesContainer.appendChild(div);
-                lastMessageId = Math.max(lastMessageId, msg.id);
-            });
-            if (data.messages.length > 0) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-            updateUnreadBadge();
+function formatTime(date) {
+    const d = new Date(date);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+async function loadMessages() {
+    try {
+        const res = await fetch(`api/get_messages.php?with=${partnerId}&role=${myRole}&since=${lastMessageId}&t=${Date.now()}`);
+        const messages = await res.json();
+        if (messages.length === 0) return;
+
+        const container = document.getElementById('messages');
+        const shouldScroll = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+
+        const fragment = document.createDocumentFragment();
+        messages.forEach(msg => {
+            // THIS LINE IS THE ONLY ONE THAT MATTERS
+            const isSent = parseInt(msg.sender_id) === parseInt(myId);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${isSent ? 'sent' : 'received'}`;
+            wrapper.innerHTML = `
+                <div class="message">
+                    ${msg.message.replace(/\n/g, '<br>')}
+                    <div class="message-meta">
+                        ${formatTime(msg.sent_at)}
+                        ${isSent ? ` · ${msg.is_read == 1 ? 'Seen' : (msg.is_read == 2 ? 'Delivered' : 'Sent')}` : ''}
+                    </div>
+                </div>
+            `;
+            fragment.appendChild(wrapper);
+            if (msg.id > lastMessageId) lastMessageId = msg.id;
         });
+
+        container.appendChild(fragment);
+        if (shouldScroll) container.scrollTop = container.scrollHeight;
+
+        // Mark as read
+        if (messages.some(m => parseInt(m.sender_id) === parseInt(partnerId) && m.is_read == 0)) {
+            fetch('api/mark_read.php', { 
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'}, 
+                body: JSON.stringify({from: partnerId}) 
+            });
+        }
+
+        const loading = container.querySelector('div');
+        if (loading && loading.textContent.includes('Loading')) loading.remove();
+
+    } catch (e) { console.error(e); }
 }
 
 function sendMessage() {
@@ -158,33 +207,23 @@ function sendMessage() {
     fetch('api/send_message.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            receiver_id: chatWithId,
-            message: msg
-        })
+        body: JSON.stringify({ to: partnerId, message: msg, role: myRole })
     }).then(() => {
         input.value = '';
         loadMessages();
     });
 }
 
-function updateUnreadBadge() {
-    // Optional: update floating badge on other tabs
-    if (window.opener || parent !== window) {
-        // If opened in modal, notify parent
-        try { parent.postMessage({type: 'updateChatBadge'}, '*'); } catch(e) {}
+document.getElementById('messageInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
     }
-}
-
-// Load messages every 2 seconds
-setInterval(loadMessages, 2000);
-loadMessages();
-
-// Send on Enter or button
-document.getElementById('messageInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendMessage();
 });
-document.getElementById('sendBtn').addEventListener('click', sendMessage);
+
+setInterval(loadMessages, 2500);
+loadMessages();
 </script>
+
 </body>
 </html>

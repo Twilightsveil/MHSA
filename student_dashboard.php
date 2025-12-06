@@ -26,7 +26,7 @@ $appointments = $conn->prepare("
         a.appointment_id,
         a.appointment_date, 
         a.Appointment_desc, 
-        a.status, /* <-- add status */
+        a.status,
         c.fname, c.lname, c.mi 
     FROM appointments a 
     JOIN counselor c ON a.counselor_ID = c.counselor_id 
@@ -302,10 +302,9 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 <?php
-// Clear notifications if requested
+// Clear notifications
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_student_notifications'])) {
     $_SESSION['student_notifications'] = [];
-    // Optionally reload to update UI
     echo "<script>location.href=location.href;</script>";
 }
 ?>
@@ -371,7 +370,7 @@ function toggleNotifDropdown(e) {
 </div>
 
 <!-- Floating Chat Button -->
-<div class="floating-chat" id="chatFloatBtn">
+<div class="floating-chat" id="chatFloatBtn" onclick="openChatWithCounselor()">
     <i class="fas fa-comment-medical"></i>
     <div class="badge" id="unreadBadge">0</div>
 </div>
@@ -713,24 +712,41 @@ if (isset($_GET['clear_notifications'])) {
 }
 ?>
 
-function openCounselorChatModal() {
-    window.location = 'chat.php?with=C1';
+// Open chat with the student's counselor (from approved appointment)
+async function openChatWithCounselor() {
+    try {
+        const res = await fetch('api/get_my_counselor.php');
+        const data = await res.json();
+
+        if (data.counselor_id) {
+            window.location.href = `chat.php?with=${data.counselor_id}`;
+        } else {
+            alert('No approved appointment found. Please book and get your appointment approved first.');
+        }
+    } catch (e) {
+        alert('Error connecting to chat. Please try again.');
+        console.error(e);
+    }
 }
 
-// Update unread count
+// Update unread count badge
 function updateChatBadge() {
     fetch('api/unread_count.php')
         .then(r => r.json())
         .then(d => {
             const badge = document.getElementById('unreadBadge');
-            badge.textContent = d.count > 99 ? '99+' : d.count;
-            badge.style.display = d.count > 0 ? 'flex' : 'none';
+            const count = parseInt(d.count) || 0;
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = count > 0 ? 'flex' : 'none';
+        })
+        .catch(() => {
+            // Silent fail if API down
         });
 }
+
+// Auto-update badge every 5 seconds
 setInterval(updateChatBadge, 5000);
 updateChatBadge();
-
-document.getElementById('chatFloatBtn').onclick = openCounselorChatModal;
 
 let currentFeedbackApptId = null;
 

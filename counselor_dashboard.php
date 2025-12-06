@@ -38,6 +38,13 @@ $pending->execute([$counselor_id]);
 $pending_count = $pending->fetchColumn();
 ?>
 
+<?php
+// Securely get completed appointments count
+$completed_stmt = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE counselor_id = ? AND status = 'done'");
+$completed_stmt->execute([$counselor_id]);
+$completed_count = $completed_stmt->fetchColumn();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -197,6 +204,7 @@ $pending_count = $pending->fetchColumn();
             </span>
         </div>
     </div>
+    
 
     <div style="max-height:460px;overflow-y:auto;">
         <?php if (!empty($_SESSION['counselor_notifications'])): ?>
@@ -239,12 +247,13 @@ $pending_count = $pending->fetchColumn();
             </div>
         <?php endif; ?>
     </div>
-
+    
     <?php if (!empty($_SESSION['counselor_notifications'])): ?>
     <div style="padding:12px 22px;background:#f8f9fa;text-align:center;border-top:1px solid #eee;">
         <a href="javascript:void(0)" onclick="clearAllNotifications()" style="color:#8e44ad;font-size:14px;font-weight:500;">Clear all notifications</a>
     </div>
     <?php endif; ?>
+    
 </div>
         </div>
 
@@ -269,6 +278,8 @@ $pending_count = $pending->fetchColumn();
             </ul>
         </div>
     </div>
+    
+    
 </div>
 
 <div class="dashboard-container">
@@ -288,6 +299,11 @@ $pending_count = $pending->fetchColumn();
             </ul>
             <ul>
                 <li><a href="students.php"><i class="fas fa-user-graduate"></i>Students</a></li>
+            </ul>
+            <ul>
+                <button id="generateReportBtn" class="btn" style="background:#27ae60;padding:12px 20px;font-size:15px;width:100%;text-align:left;border:none;border-radius:8px;color:white;cursor:pointer;transition:0.3s;">
+                    <i class="fas fa-file-pdf"></i> Generate Report
+                </button>
             </ul>
         </nav>
     </aside>
@@ -330,6 +346,7 @@ $pending_count = $pending->fetchColumn();
         <div style="background:#f8f9fa;padding:18px;border-radius:14px;margin:15px 0;">
             <p style="margin:10px 0;"><strong>Date & Time:</strong> <span id="detailDateTime" style="color:#8e44ad;font-weight:600;"></span></p>
             <p style="margin:10px 0;"><strong>Reason:</strong> <span id="detailReason" style="color:#444;"></span></p>
+            <div id="modalActions" style="margin-top:25px;text-align:center;"></div>
         </div>
 
         <!-- Action Buttons -->
@@ -344,7 +361,7 @@ $pending_count = $pending->fetchColumn();
 
         <!-- Secondary buttons -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px;">
-            <button onclick="openChatWithStudent()" class="btn" style="background:#3498db;padding:14px;font-size:15px;">
+            <button onclick="openChatWithStudent(currentStudentId)" class="btn" style="background:#3498db;padding:14px;font-size:15px;">
                 Chat
             </button>
             <button onclick="rescheduleFromModal()" class="btn" style="background:#f39c12;padding:14px;font-size:15px;">
@@ -422,20 +439,20 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
 
         eventClick: function(info) {
-            const p = info.event.extendedProps;
+    const p = info.event.extendedProps;
 
-            currentAppointmentId = p.appointment_id;
-            currentStudentId     = p.student_id;
+    currentAppointmentId = p.appointment_id;
+    currentStudentId = p.student_id;
 
-            document.getElementById('detailInitials').textContent = p.initials;
-            document.getElementById('detailStudent').textContent = p.student;
-            document.getElementById('detailDateTime').textContent = p.datetime;
-            document.getElementById('detailReason').textContent   = p.reason || 'Not specified';
+    document.getElementById('detailInitials').textContent = p.initials;
+    document.getElementById('detailStudent').textContent = p.student;
+    document.getElementById('detailDateTime').textContent = p.datetime;
+    document.getElementById('detailReason').textContent = p.reason || 'Not specified';
 
-            updateModalStatus(p.status || 'pending');
+    updateModalStatus(p.status || 'pending');
 
-            document.getElementById('appointmentDetailModal').style.display = 'flex';
-        }
+    document.getElementById('appointmentDetailModal').style.display = 'flex';
+}
     });
 
     calendar.render();
@@ -475,7 +492,7 @@ function updateModalStatus(status) {
     }
 }
 
-// MARK AS DONE – FIXED: No longer opens panel!
+// Mark as done
 function markAsDone(id) {
     if (!confirm('Mark this appointment as completed?')) return;
 
@@ -527,13 +544,6 @@ function markAsDone(id) {
     });
 }
 
-// Open chat
-function openChatWithStudent() {
-    if (currentStudentId) {
-        window.open(`chat.php?with=${currentStudentId}`, '_blank');
-    }
-}
-
 // Reschedule
 function rescheduleFromModal() {
     const newDate = prompt('Enter new date and time (YYYY-MM-DD HH:MM):', '');
@@ -583,37 +593,37 @@ function openAllAppointmentsPanel() {
 
                 html += `
                     <div class="appt-card ${status}" data-id="${a.appointment_id}">
-                    <div class="appt-header">
-                        <div class="appt-date"><i class="fas fa-calendar"></i> ${fmt}</div>
-                        <div class="appt-status">${status.charAt(0).toUpperCase() + status.slice(1)}</div>
-                    </div>
-                    <div class="appt-student-info">
-                        <div class="appt-student-initials">${initials}</div>
-                        <div><strong>${name}</strong><br><small>Student</small></div>
-                    </div>
-                    <div class="appt-reason"><strong>Reason:</strong> ${a.appointment_desc || 'Not specified'}</div>
-                    <div class="appt-actions" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-                    <button class="chat" onclick="window.open('chat.php?with=<?= $a['student_id'] ?>', '_blank')">
-                        Chat
-                    </button>
-                    <button class="reschedule" onclick="rescheduleAppointment('${a.appointment_id}', '${name}')">
-                        Reschedule
-                    </button>
+                        <div class="appt-header">
+                            <div class="appt-date">Calendar Icon ${fmt}</div>
+                            <div class="appt-status">${status.charAt(0).toUpperCase() + status.slice(1)}</div>
+                        </div>
+                        <div class="appt-student-info">
+                            <div class="appt-student-initials">${initials}</div>
+                            <div><strong>${name}</strong><br><small>Student</small></div>
+                        </div>
+                        <div class="appt-reason"><strong>Reason:</strong> ${a.appointment_desc || 'Not specified'}</div>
+                        <div class="appt-actions" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                            <button class="chat" onclick="openChatWithStudent(${a.student_id})">
+                                Chat
+                            </button>
+                            <button class="reschedule" onclick="rescheduleAppointment('${a.appointment_id}', '${name}')">
+                                Reschedule
+                            </button>
 
-                    ${status === 'pending' ? 
-                        `<button class="approve" onclick="approveAppointment('${a.appointment_id}')" style="background:#27ae60;color:white;">
-                            Approve
-                        </button>` :
-                    status === 'approved' ? 
-                        `<button class="done" onclick="markAsDone('${a.appointment_id}')" style="background:#27ae60;color:white;">
-                            Mark as Done
-                        </button>` :
-                        `<button disabled style="background:#3498db;color:white;">
-                            Completed
-                        </button>`
-                    }
-                </div>
-                </div>`;
+                            ${status === 'pending' ? 
+                                `<button class="approve" onclick="approveAppointment('${a.appointment_id}')" style="background:#27ae60;color:white;">
+                                    Approve
+                                </button>` :
+                            status === 'approved' ? 
+                                `<button class="done" onclick="markAsDone('${a.appointment_id}')" style="background:#27ae60;color:white;">
+                                    Mark as Done
+                                </button>` :
+                                `<button disabled style="background:#3498db;color:white;">
+                                    Completed
+                                </button>`
+                            }
+                        </div>
+                    </div>`;
             });
             body.innerHTML = html;
         });
@@ -671,7 +681,9 @@ function approveAppointment(id) {
                 card.querySelector('.appt-status').style.background = '#27ae60';
                 const actions = card.querySelector('.appt-actions');
                 actions.innerHTML = `
-                    <button class="chat" onclick="window.open('chat.php?with=...')">Chat</button>
+                    <button class="chat" onclick="window.open('chat.php?with=' + a.student_id, '_blank')">
+                        Chat
+                    </button>
                     <button class="reschedule" onclick="rescheduleAppointment('${id}', '${name}')">Reschedule</button>
                     <button class="done" onclick="markAsDone('${id}')">Mark as Done</button>
                 `;
@@ -700,8 +712,6 @@ function rescheduleAppointment(id, name) {
         .then(r=>r.json()).then(d=>{ if(d.success){ alert('Rescheduled!'); openAllAppointmentsPanel(); location.reload(); } else alert('Invalid date'); });
 }
 
-function openChatModal(id, name) { alert(`Chat with ${name} (ID: ${id})`); }
-
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllAppointmentsPanel(); });
 
 function approveAndRemove(appointment_id, notification_index, button) {
@@ -721,7 +731,6 @@ function approveAndRemove(appointment_id, notification_index, button) {
         if (d.success) {
             const item = button.closest('.notif-item');
             
-            // Smooth fade out + slide up
             item.style.transition = 'all 0.4s ease';
             item.style.opacity = '0';
             item.style.transform = 'translateX(-100%)';
@@ -734,7 +743,6 @@ function approveAndRemove(appointment_id, notification_index, button) {
             setTimeout(() => {
                 item.remove();
 
-                // Update badge count
                 const badge = document.querySelector('#notifBtn span');
                 if (badge) {
                     let count = parseInt(badge.textContent) - 1;
@@ -742,7 +750,6 @@ function approveAndRemove(appointment_id, notification_index, button) {
                     else badge.textContent = count;
                 }
 
-                // If no more notifications
                 if (document.querySelectorAll('.notif-item').length === 0) {
                     document.querySelector('#notifDropdown > div:nth-child(2)').innerHTML = `
                         <div style="padding:80px 30px;text-align:center;color:#bdc3c7;">
@@ -772,8 +779,181 @@ function clearAllNotifications() {
     fetch('api/clear_notifications.php', { method: 'POST' })
         .then(() => location.reload());
 }
+</script>
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script>
+const counselorName   = <?= json_encode($counselor_name) ?>;
+const reportDate      = <?= json_encode(date('F j, Y')) ?>;
+const reportTime      = <?= json_encode(date('g:i A')) ?>;
+const fileDate        = <?= json_encode(date('Y-m-d')) ?>;
 
+// fetching stats from PHP
+<?php
+$total_stmt = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE counselor_id = ?");
+$total_stmt->execute([$counselor_id]);
+$totalAppts = $total_stmt->fetchColumn();
+
+$pending_stmt = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE counselor_id = ? AND (status IS NULL OR status = 'pending' OR status = '')");
+$pending_stmt->execute([$counselor_id]);
+$pendingCount = $pending_stmt->fetchColumn();
+
+$approved_stmt = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE counselor_id = ? AND status = 'approved'");
+$approved_stmt->execute([$counselor_id]);
+$approvedCount = $approved_stmt->fetchColumn();
+
+$completed_stmt = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE counselor_id = ? AND status = 'done'");
+$completed_stmt->execute([$counselor_id]);
+$completedCount = $completed_stmt->fetchColumn();
+?>
+const totalAppts     = <?= json_encode($totalAppts) ?>;
+const pendingCount   = <?= json_encode($pendingCount) ?>;
+const approvedCount  = <?= json_encode($approvedCount) ?>;
+const completedCount = <?= json_encode($completedCount) ?>;
+const currentYear    = <?= json_encode(date('Y')) ?>;
+
+function generatePDFReport() {
+    if (!window.jspdf?.jsPDF) {
+        alert('PDF library not loaded. Please refresh.');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(24);
+    doc.setTextColor(142, 68, 173);
+    doc.text('MHSA Counseling Report', 105, 25, { align: 'center' });
+
+    doc.setFontSize(16);
+    doc.setTextColor(50, 50, 50);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Student Mental Health & Appointment System', 105, 35, { align: 'center' });
+
+    // Counselor Info
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Counselor:', 20, 50);
+    doc.setFont('helvetica', 'normal');
+    doc.text(counselorName, 50, 50);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Generated:', 20, 57);
+    doc.setFont('helvetica', 'normal');
+    doc.text(reportDate + ' at ' + reportTime, 50, 57);
+
+    // Summary Box
+    const boxX = 20;
+    const boxY = 75;
+    const boxW = 170;
+    const boxH = 40;
+
+    // Purple background
+    doc.setFillColor(142, 68, 173);
+    doc.rect(boxX, boxY, boxW, boxH, 'F');
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary Statistics', 105, boxY + 12, { align: 'center' });
+
+    // Stats
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'normal');
+
+    // Left column
+    doc.text(`Total Appointments:`, boxX + 15, boxY + 25);
+    doc.text(`Pending:`, boxX + 15, boxY + 35);
+
+    // Right column (values)
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${totalAppts}`, boxX + 70, boxY + 25);
+    doc.text(`${pendingCount}`, boxX + 70, boxY + 35);
+
+    // Second row — Approved & Completed
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Approved:`, boxX + 105, boxY + 25);
+    doc.text(`Completed:`, boxX + 105, boxY + 35);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${approvedCount}`, boxX + 145, boxY + 25);
+    doc.text(`${completedCount}`, boxX + 145, boxY + 35);
+
+    //ALL APPOINTMENTS LIST 
+    let y = 130;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('All Appointments', 20, y);
+    y += 10;
+
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'normal');
+
+    <?php 
+    $all_stmt = $conn->prepare("
+        SELECT a.*, s.fname, s.lname, s.mi 
+        FROM appointments a 
+        JOIN student s ON a.student_id = s.student_id 
+        WHERE a.counselor_id = ? 
+        ORDER BY a.appointment_date DESC
+    ");
+    $all_stmt->execute([$counselor_id]);
+    foreach ($all_stmt->fetchAll() as $a):
+        $name = trim($a['fname'] . ' ' . ($a['mi'] ? $a['mi'].'. ' : ' ') . $a['lname']);
+        $date = date('M j, Y - g:i A', strtotime($a['appointment_date']));
+        $statusText = match($a['status'] ?? 'pending') {
+            'approved' => 'Approved',
+            'done'     => 'Completed',
+            default    => 'Pending'
+        };
+        $reason = $a['appointment_desc'] ?? 'Not specified';
+        $shortReason = strlen($reason) > 80 ? substr($reason, 0, 77).'...' : $reason;
+    ?>
+    doc.setFont('helvetica', 'bold');
+    doc.text('• <?= addslashes($name) ?>', 25, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('<?= addslashes($date) ?>', 85, y);
+    doc.text('<?= $statusText ?>', 150, y);
+    y += 6;
+    doc.setFontSize(9.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text('   Reason: <?= addslashes($shortReason) ?>', 25, y);
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+
+    if (y > 270) {
+        doc.addPage();
+        y = 20;
+    }
+    <?php endforeach; ?>
+
+    // Footer
+    doc.setFontSize(10);
+    doc.setTextColor(130, 130, 130);
+    doc.text(`Generated by MHSA Counseling System • ${currentYear}`, 105, 290, { align: 'center' });
+
+    doc.save(`Counselor_Report_${fileDate}.pdf`);
+}
+
+function openChatWithStudent(studentId) {
+    if (!studentId || studentId <= 0) {
+        alert("Cannot open chat: Invalid student ID");
+        return;
+        return;
+    }
+    window.open('chat.php?with=' + studentId, '_blank');
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('generateReportBtn')?.addEventListener('click', generatePDFReport);
+});
 </script>
 </body>
 </html>

@@ -2,27 +2,29 @@
 session_start();
 require_once '../db/connection.php';
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['messages' => []]);
-    exit;
-}
+$with = $_GET['with'] ?? '';
+$role = $_GET['role'] ?? '';
+$since = (int)($_GET['since'] ?? 0);
+
+if (!$with || !$role) die(json_encode([]));
 
 $user_id = $_SESSION['user_id'];
-$with = (int)$_GET['with'];
-$last = (int)$_GET['last'];
+$partner_role = $role === 'student' ? 'counselor' : 'student';
 
 $stmt = $conn->prepare("
-    SELECT * FROM messages 
-    WHERE (sender_id = ? AND receiver_id = ?) 
-       OR (sender_id = ? AND receiver_id = ?)
-       AND id > ?
+    SELECT id, message, sender_id, sender_role, sent_at, is_read
+    FROM messages 
+    WHERE (
+        (sender_id = ? AND receiver_id = ?) OR 
+        (sender_id = ? AND receiver_id = ?)
+    )
+    " . ($since > 0 ? " AND id > ?" : "") . "
     ORDER BY sent_at ASC
 ");
-$stmt->execute([$user_id, $with, $with, $user_id, $last]);
-$messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$params = $since > 0 
+    ? [$user_id, $with, $with, $user_id, $since]
+    : [$user_id, $with, $with, $user_id];
 
-// Mark as read
-$conn->prepare("UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0")
-    ->execute([$with, $user_id]);
-
-echo json_encode(['messages' => $messages]);
+$stmt->execute($params);
+echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+?>
