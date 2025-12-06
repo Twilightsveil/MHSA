@@ -213,90 +213,85 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
 <!-- Navbar -->
 <div class="navbar">
     <div class="logo">Student Portal</div>
-    <div class="nav-right" style="display: flex; align-items: center; gap: 20px;">
+    <div class="nav-right" style="display: flex; align-items: center; gap: 20px; position: relative;">
         <!-- Notification Bell -->
-        <div style="position: relative;">
-    <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;position:relative;font-size:22px;color:#333;">
-        <i class="fas fa-bell"></i>
-        <?php if (!empty($_SESSION['student_notifications'])): ?>
-            <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:11px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">
-                <?= count($_SESSION['student_notifications']) ?>
-            </span>
-        <?php endif; ?>
-    </button>
-
-    <!-- DROPDOWN -->
-    <div id="notifDropdown" style="display:none;position:absolute;right:0;top:50px;background:white;box-shadow:0 15px 40px rgba(0,0,0,0.18);border-radius:16px;min-width:380px;max-height:80vh;overflow:hidden;z-index:1001;border:1px solid #eee;">
-        <div style="padding:18px 22px;font-weight:bold;background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;border-radius:16px 16px 0 0;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:18px;">Notifications</span>
-                <span style="background:rgba(255,255,255,0.25);padding:5px 12px;border-radius:20px;font-size:13px;">
-                    <?= count($_SESSION['student_notifications'] ?? []) ?> new
-                </span>
-            </div>
-        </div>
-
-        <div style="max-height:460px;overflow-y:auto;">
+        <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;position:relative;font-size:22px;color:#333;">
+            <i class="fas fa-bell"></i>
             <?php if (!empty($_SESSION['student_notifications'])): ?>
-                <?php foreach ($_SESSION['student_notifications'] as $n): 
-                    $msg = is_array($n) ? $n['message'] : $n;
-                    $details = is_array($n) ? ($n['details'] ?? '') : '';
-                    $time = is_array($n) ? ($n['time'] ?? 'Just now') : 'Just now';
-                ?>
-                    <div class="notif-item" style="padding:18px 22px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:16px;background:#faf8ff;transition:all 0.3s ease;">
-                        <div style="width:48px;height:48px;background:#27ae60;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-weight:600;color:#2c3e50;font-size:15px;line-height:1.4;">
-                                <?= htmlspecialchars($msg) ?>
-                            </div>
-                            <?php if ($details): ?>
-                                <div style="color:white;font-size:14px;margin-top:4px;">
-                                    <?= htmlspecialchars($details) ?>
-                                </div>
-                            <?php endif; ?>
-                            <div style="color:#95a5a6;font-size:13px;margin-top:6px;">
-                                <i class="fas fa-clock"></i> <?= $time ?>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div style="padding:80px 30px;text-align:center;color:#bdc3c7;">
-                    <i class="fas fa-bell-slash fa-3x mb-3"></i>
-                    <div style="font-size:16px;font-weight:500;">All caught up!</div>
-                    <div style="font-size:14px;margin-top:8px;">No new notifications</div>
+                <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:11px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;">
+                    <?= count($_SESSION['student_notifications']) ?>
+                </span>
+            <?php endif; ?>
+        </button>
+        <!-- Notification Dropdown -->
+        <div id="notifDropdown" style="display:none;position:absolute;right:60px;top:50px;background:white;box-shadow:0 15px 40px rgba(0,0,0,0.18);border-radius:16px;min-width:380px;max-height:80vh;overflow:hidden;z-index:1001;border:1px solid #eee;">
+            <div style="padding:18px 22px;font-weight:bold;background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;border-radius:16px 16px 0 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:18px;">Notifications</span>
+                    <span style="background:rgba(255,255,255,0.25);padding:5px 12px;border-radius:20px;font-size:13px;">
+                        <?= count($_SESSION['student_notifications'] ?? []) ?> new
+                    </span>
                 </div>
+            </div>
+            <div style="max-height:460px;overflow-y:auto;">
+                <?php if (!empty($_SESSION['student_notifications'])): ?>
+                    <?php foreach ($_SESSION['student_notifications'] as $n): 
+                        $msg = is_array($n) ? $n['message'] : $n;
+                        $details = is_array($n) ? ($n['details'] ?? '') : '';
+                        $time = is_array($n) ? ($n['time'] ?? 'Just now') : 'Just now';
+                    ?>
+                        <div class="notif-item" style="padding:18px 22px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:16px;background:#faf8ff;transition:all 0.3s ease;">
+                            <div style="width:48px;height:48px;background:#27ae60;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;color:#2c3e50;font-size:15px;line-height:1.4;">
+                                    <?= htmlspecialchars($msg) ?>
+                                </div>
+                                <?php if ($details): ?>
+                                    <div style="color:white;font-size:14px;margin-top:4px;">
+                                        <?= htmlspecialchars($details) ?>
+                                    </div>
+                                <?php endif; ?>
+                                <div style="color:#95a5a6;font-size:13px;margin-top:6px;">
+                                    <i class="fas fa-clock"></i> <?= $time ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div style="padding:80px 30px;text-align:center;color:#bdc3c7;">
+                        <i class="fas fa-bell-slash fa-3x mb-3"></i>
+                        <div style="font-size:16px;font-weight:500;">All caught up!</div>
+                        <div style="font-size:14px;margin-top:8px;">No new notifications</div>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php if (!empty($_SESSION['student_notifications'])): ?>
+            <div style="padding:14px 22px;background:#f8f9fa;text-align:center;border-top:1px solid #eee;">
+                <a href="?clear_notifications=1" style="color:#8e44ad;font-weight:500;font-size:14px;">Clear all notifications</a>
+            </div>
             <?php endif; ?>
         </div>
-
-        <?php if (!empty($_SESSION['student_notifications'])): ?>
-        <div style="padding:14px 22px;background:#f8f9fa;text-align:center;border-top:1px solid #eee;">
-            <a href="?clear_notifications=1" style="color:#8e44ad;font-weight:500;font-size:14px;">Clear all notifications</a>
-        </div>
-        <?php endif; ?>
-    </div>
-</div>
-        </div>
         <!-- Profile Button -->
-        <button id="profileBtn" class="profile-btn" onclick="toggleProfileDropdown(event)">
-            <div class="avatar"><i class="fas fa-user-graduate"></i></div>
+        <button id="profileBtn" onclick="toggleProfileDropdown(event)" style="background:none;border:none;cursor:pointer;">
+            <div style="width:40px;height:40px;background:#8e44ad;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                <i class="fas fa-user-graduate"></i>
+            </div>
         </button>
-         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true">
-            <div class="profile-row" style="display:flex;align-items:center;gap:15px;padding:12px 10px;border-radius:16px 16px 0 0;background: #8e44ad;">
-                <div class="avatar" style=" width:20px;height:20px;"><i class="fas fa-user-graduate"></i></div>
-                <div class="info">
-                    <div class="info-name"><?= htmlspecialchars($name) ?></div>
-                    <small>Student</small>
+        <div id="profileDropdown" class="profile-dropdown" aria-hidden="true" style="position:absolute;right:20px;top:70px;background:white;box-shadow:0 10px 30px rgba(0,0,0,0.2);border-radius:12px;width:240px;z-index:1001;">
+            <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;background: #8e44ad;">
+                <div style="width:44px;height:44px;background:gray;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div>
+                    <div style="font-weight:600; "><?= htmlspecialchars($name) ?></div>
+                    <small style="color:white;">Student</small>
                 </div>
             </div>
-            <ul>
-                <li><a href="student_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
-                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
-                <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
-                    <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout
-                </a></li>
+            <ul style="margin:0;padding:0;list-style:none;">
+                <li><a href="student_profile.php" style="display:block;padding:12px 20px;text-decoration:none;color:#333;">My Profile</a></li>
+                <li><a href="logout.php" style="display:block;padding:12px 20px;color:#e74c3c;text-decoration:none;">Logout</a></li>
             </ul>
         </div>
     </div>
@@ -580,11 +575,12 @@ function confirmBooking() {
     .then(r => r.json())
     .then(res => {
         if (res.success) {
-            alert('Appointment successfully booked!');
-            closeBookingModal();
-            location.reload();
+            showAlertBox('Appointment successfully booked!', function() {
+                closeBookingModal();
+                location.reload();
+            });
         } else {
-            alert('Booking failed: ' + res.message);
+            showAlertBox('Booking failed: ' + res.message);
         }
     });
 }
@@ -662,12 +658,12 @@ document.addEventListener('DOMContentLoaded', () => {
             var dot = '';
             if (status === 'approved') {
                 dot = '<span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>';
+            } else if (status === 'pending') {
+                dot = '<span style="display:inline-block;width:12px;height:12px;background:#8e44ad;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>';
             }
-            var time = arg.timeText ? arg.timeText + ' ' : '';
-            var title = arg.event.title.split(' - ')[0];
-            return {
-                html: '<span style="display:flex;align-items:center;">' + dot + '<span>' + time + title + '</span></span>'
-            };
+
+            var title = '<div>' + dot + arg.event.title + '</div>';
+            return { html: title };
         },
 
         eventClick: function(info) {
@@ -683,22 +679,25 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function cancelAppointment() {
-    if (!currentAppointmentId || !confirm("Are you sure you want to cancel this appointment?")) return;
-
-    fetch('api/cancel_appointments.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointment_id: currentAppointmentId })
-    })
-    .then(r => r.json())
-    .then(res => {
-        if (res.success) {
-            alert("Appointment cancelled successfully!");
-            document.getElementById('appointmentDetailModal').style.display = 'none';
-            location.reload();
-        } else {
-            alert("Failed: " + (res.message || "Unknown error"));
-        }
+    if (!currentAppointmentId) return;
+    showConfirmBox('Are you sure you want to cancel this appointment?', function() {
+        // Proceed with cancellation after confirmation
+        fetch('api/cancel_appointments.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appointment_id: currentAppointmentId })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                showAlertBox("Appointment cancelled successfully!", function() {
+                    document.getElementById('appointmentDetailModal').style.display = 'none';
+                    location.reload();
+                });
+            } else {
+                showAlertBox("Failed: " + (res.message || "Unknown error"));
+            }
+        });
     });
 }
 
@@ -895,6 +894,31 @@ function submitFeedback() {
         }
     });
 }
+
+// Approve Appointment button logic
+document.getElementById('approveAppointmentBtn').addEventListener('click', function() {
+    fetch('api/approve_appointment.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointment_id: currentAppointmentId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlertBox('Appointment approved successfully!', () => {
+                document.getElementById('detailStatusBadge').textContent = 'Approved';
+                document.getElementById('detailStatusBadge').style.backgroundColor = '#27ae60';
+                calendar.refetchEvents();
+            });
+        } else {
+            showAlertBox('Failed to approve appointment: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error approving appointment:', error);
+        showAlertBox('An error occurred while approving the appointment.');
+    });
+});
 </script>
 
 <!-- Student Appointments Panel -->
@@ -950,4 +974,6 @@ function submitFeedback() {
 </div>
 
 </body>
+<script src="JS/confirmBox.js"></script>
+<script src="JS/alertBox.js"></script>
 </html>

@@ -178,6 +178,16 @@ $completed_count = $completed_stmt->fetchColumn();
             background: rgba(0,0,0,0.7);
             z-index: 1099;
         }
+
+        .event-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -400,14 +410,37 @@ document.addEventListener('DOMContentLoaded', function () {
     calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'timeGridWeek',
         headerToolbar: {
-            left: 'prev,next today',
+            left: '',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: ''
         },
-        slotMinTime: '08:00:00',
-        slotMaxTime: '18:00:00',
+        customButtons: {
+            today: {
+                text: 'Today',
+                click: function() {
+                    calendar.today();
+                }
+            },
+            prev: {
+                text: '<',
+                click: function() {
+                    calendar.prev();
+                }
+            },
+            next: {
+                text: '>',
+                click: function() {
+                    calendar.next();
+                }
+            }
+        },
+        buttonText: {
+            today: 'Today',
+            month: 'Month',
+            week: 'Week',
+            day: 'Day'
+        },
         height: 'auto',
-
         events: [
             
             <?php foreach ($all_appointments as $a):
@@ -439,23 +472,58 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
 
         eventClick: function(info) {
-    const p = info.event.extendedProps;
+            const p = info.event.extendedProps;
 
-    currentAppointmentId = p.appointment_id;
-    currentStudentId = p.student_id;
+            currentAppointmentId = p.appointment_id;
+            currentStudentId = p.student_id;
 
-    document.getElementById('detailInitials').textContent = p.initials;
-    document.getElementById('detailStudent').textContent = p.student;
-    document.getElementById('detailDateTime').textContent = p.datetime;
-    document.getElementById('detailReason').textContent = p.reason || 'Not specified';
+            document.getElementById('detailInitials').textContent = p.initials;
+            document.getElementById('detailStudent').textContent = p.student;
+            document.getElementById('detailDateTime').textContent = p.datetime;
+            document.getElementById('detailReason').textContent = p.reason || 'Not specified';
 
-    updateModalStatus(p.status || 'pending');
+            updateModalStatus(p.status || 'pending');
 
-    document.getElementById('appointmentDetailModal').style.display = 'flex';
-}
+            document.getElementById('appointmentDetailModal').style.display = 'flex';
+        }
     });
 
     calendar.render();
+
+    // Center the date on the header
+    const headerToolbar = document.querySelector('.fc-toolbar-title');
+    headerToolbar.style.textAlign = 'center';
+
+    // Add
+    const headerToolbar = document.querySelector('.fc-toolbar-title');
+    // Adjust navigation and filtering buttons layout
+    const navButtonsContainer = document.createElement('div');
+    navButtonsContainer.style.display = 'flex';
+    navButtonsContainer.style.flexDirection = 'column';
+    navButtonsContainer.style.marginTop = '10px';
+
+    const navigationButtons = `
+        <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+            <button onclick="calendar.prev()" style="margin-right:10px;">&lt;</button>
+            <button onclick="calendar.today()" style="margin-right:10px;">Today</button>
+            <button onclick="calendar.next()">&gt;</button>
+        </div>
+    `;
+
+    const filteringButtons = `
+        <div style="display: flex; justify-content: center;">
+            <button onclick="calendar.changeView('dayGridMonth')" style="margin-right:10px;">Month</button>
+            <button onclick="calendar.changeView('timeGridWeek')" style="margin-right:10px;">Week</button>
+            <button onclick="calendar.changeView('timeGridDay')">Day</button>
+        </div>
+    `;
+
+    navButtonsContainer.innerHTML = `
+        ${navigationButtons}
+        ${filteringButtons}
+    `;
+
+    headerToolbar.parentNode.insertBefore(navButtonsContainer, headerToolbar.nextSibling);
 });
 
 // Update modal status
@@ -494,7 +562,11 @@ function updateModalStatus(status) {
 
 // Mark as done
 function markAsDone(id) {
-    if (!confirm('Mark this appointment as completed?')) return;
+    showConfirmBox('Mark this appointment as completed?', function() {
+        // continue after confirmation
+        // ...existing code...
+    });
+    return;
 
     const btn = event ? event.target : null;
     if (btn) {
@@ -547,7 +619,12 @@ function markAsDone(id) {
 // Reschedule
 function rescheduleFromModal() {
     const newDate = prompt('Enter new date and time (YYYY-MM-DD HH:MM):', '');
-    if (!newDate || !confirm('Reschedule this appointment?')) return;
+    if (!newDate) return;
+    showConfirmBox('Reschedule this appointment?', function() {
+        // continue after confirmation
+        // ...existing code...
+    });
+    return;
 
     fetch('api/reschedule.php', {
         method: 'POST',
@@ -647,59 +724,62 @@ document.getElementById('apptSearch').addEventListener('input', function() {
 
 // Actions
 function approveAppointment(id) {
-    if (!confirm('Approve this appointment?')) return;
+    showConfirmBox('Approve this appointment?', function() {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        fetch('api/approve_appointment.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'appointment_id=' + id
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                // Update calendar event color
+                const event = calendar.getEventById(id);
+                if (event) {
+                    event.setProp('color', '#27ae60');
+                }
 
-    fetch('api/approve_appointment.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'appointment_id=' + id
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.success) {
-            // Update calendar event color
-            const event = calendar.getEventById(id);
-            if (event) {
-                event.setProp('color', '#27ae60');
+                // Update modal if open
+                if (currentAppointmentId == id) {
+                    updateModalStatus('approved');
+                }
+
+                // Update panel card
+                const card = document.querySelector(`.appt-card[data-id="${id}"]`);
+                if (card) {
+                    card.classList.remove('pending');
+                    card.classList.add('approved');
+                    card.querySelector('.appt-status').textContent = 'Approved';
+                    card.querySelector('.appt-status').style.background = '#27ae60';
+                    const actions = card.querySelector('.appt-actions');
+                    actions.innerHTML = `
+                        <button class="chat" onclick="window.open('chat.php?with=' + a.student_id, '_blank')">
+                            Chat
+                        </button>
+                        <button class="reschedule" onclick="rescheduleAppointment('${id}', '${name}')">Reschedule</button>
+                    `;
+                }
+            } else {
+                showAlertBox('Failed to approve appointment: ' + d.message);
             }
-
-            // Update modal if open
-            if (currentAppointmentId == id) {
-                updateModalStatus('approved');
-            }
-
-            // Update panel card
-            const card = document.querySelector(`.appt-card[data-id="${id}"]`);
-            if (card) {
-                card.classList.remove('pending');
-                card.classList.add('approved');
-                card.querySelector('.appt-status').textContent = 'Approved';
-                card.querySelector('.appt-status').style.background = '#27ae60';
-                const actions = card.querySelector('.appt-actions');
-                actions.innerHTML = `
-                    <button class="chat" onclick="window.open('chat.php?with=' + a.student_id, '_blank')">
-                        Chat
-                    </button>
-                    <button class="reschedule" onclick="rescheduleAppointment('${id}', '${name}')">Reschedule</button>
-                    <button class="done" onclick="markAsDone('${id}')">Mark as Done</button>
-                `;
-            }
-
-            updateModalStatus('approved');
-        } else {
-            alert('Failed to approve.');
-            btn.disabled = false;
-            btn.innerHTML = 'Approve Appointment';
-        }
+        })
+        .catch(error => {
+            console.error('Error approving appointment:', error);
+            showAlertBox('An error occurred while approving the appointment.');
+        });
     });
 }
 
 function markAsDone(id) {
-    if (!confirm('Mark as completed?')) return;
+    showConfirmBox('Mark as completed?', function() {
+        // continue after confirmation
+        // ...existing code...
+    });
+    return;
     fetch('api/mark_done.php', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'appointment_id='+id})
         .then(r=>r.json()).then(d=>{ if(d.success){ alert('Done!'); openAllAppointmentsPanel(); } });
         updateModalStatus('done');
@@ -715,7 +795,11 @@ function rescheduleAppointment(id, name) {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllAppointmentsPanel(); });
 
 function approveAndRemove(appointment_id, notification_index, button) {
-    if (!confirm('Approve this appointment request?')) return;
+    showConfirmBox('Approve this appointment request?', function() {
+        // continue after confirmation
+        // ...existing code...
+    });
+    return;
 
     // Visual feedback
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -775,7 +859,12 @@ function approveAndRemove(appointment_id, notification_index, button) {
 }
 
 function clearAllNotifications() {
-    if (!confirm('Clear all notifications?')) return;
+    showConfirmBox('Clear all notifications?', function() {
+        // continue after confirmation
+        fetch('api/clear_notifications.php', { method: 'POST' })
+            .then(() => location.reload());
+    });
+    return;
     fetch('api/clear_notifications.php', { method: 'POST' })
         .then(() => location.reload());
 }
@@ -956,4 +1045,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
+<script src="JS/confirmBox.js"></script>
+<script src="JS/alertBox.js"></script>
 </html>

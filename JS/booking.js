@@ -123,11 +123,12 @@ function confirmBooking() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert("Appointment booked successfully!");
-            closeBookingModal();
-            setTimeout(() => location.reload(), 800);
+            showAlertBox("Appointment booked successfully!", function() {
+                closeBookingModal();
+                location.reload();
+            });
         } else {
-            alert("This time slot was just taken. Please choose another.");
+            showAlertBox("This time slot was just taken. Please choose another.");
         }
     });
 }

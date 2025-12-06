@@ -430,7 +430,11 @@ document.getElementById('searchAppointments')?.addEventListener('input', functio
 
 // Delete Appointment
 function deleteAppointment(id) {
-    if (!confirm('Are you sure you want to delete this appointment?')) return;
+    showConfirmBox('Are you sure you want to delete this appointment?', function() {
+        // continue after confirmation
+        // ...existing code...
+    });
+    return;
 
     fetch('api/delete_appointment.php', {
         method: 'POST',
@@ -450,4 +454,6 @@ function deleteAppointment(id) {
 
 </script>
 </body>
+<script src="JS/confirmBox.js"></script>
+<script src="JS/alertBox.js"></script>
 </html>

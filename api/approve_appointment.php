@@ -35,6 +35,9 @@ if (!$appt) {
 $update = $conn->prepare("UPDATE appointments SET status = 'approved' WHERE appointment_id = ?");
 $success = $update->execute([$appointment_id]);
 
+// Debugging: Log the success of the database update
+error_log("Appointment ID: $appointment_id - Update Success: " . ($success ? 'true' : 'false'));
+
 if ($success) {
     // === SEND NOTIFICATION TO STUDENT ===
     $student_id = $appt['student_id'];
@@ -63,8 +66,9 @@ if ($success) {
         file_put_contents($counselor_notif_file, json_encode(array_values($cnotifs)));
     }
 
-    echo json_encode(['success' => true]);
+    // Refresh the calendar by sending a signal to the frontend
+    echo json_encode(['success' => true, 'message' => 'Appointment approved successfully!']);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Failed to approve']);
+    echo json_encode(['success' => false, 'message' => 'Failed to approve appointment.']);
 }
 ?>
