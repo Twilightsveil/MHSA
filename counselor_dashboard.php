@@ -490,10 +490,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     calendar.render();
 
-    // Center the date on the header
-    const headerToolbar = document.querySelector('.fc-toolbar-title');
-    headerToolbar.style.textAlign = 'center';
-
     // Add
     const headerToolbar = document.querySelector('.fc-toolbar-title');
     // Adjust navigation and filtering buttons layout
