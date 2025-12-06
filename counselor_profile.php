@@ -100,8 +100,8 @@ $current_page = 'profile';
                 </div>
             </div>
             <ul>
-                <li><a href="counselor_profile.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
-                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> My Profile
+                <li><a href="counselor_dashboard.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--text-dark);font-size:15px;">
+                    <i class="fas fa-user-circle" style="margin-right:10px;"></i> Dashboard
                 </a></li>
                 <li><a href="logout.php" style="padding:10px 20px;display:block;text-decoration:none;color:var(--danger);font-size:15px;border-top:1px solid #f5f5f5;">
                     <i class="fas fa-sign-out-alt" style="margin-right:10px;"></i> Logout

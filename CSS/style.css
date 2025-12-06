@@ -1079,7 +1079,8 @@ button, .btn {
 
 .search-box {
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
+    display: grid;
 }
 .search-box input {
     width: 100%;
@@ -1133,7 +1134,9 @@ button, .btn {
     font-size: 24px;
     font-weight: bold;
 }
-.avatar-initials.student { background: var(--info); }
+.avatar-initials.student { 
+    background: var(--info);
+ }
 
 .card-actions {
     margin-top: 16px;

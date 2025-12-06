@@ -263,13 +263,13 @@ $completed_count = $completed_stmt->fetchColumn();
             </div>
         </button>
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true" style="position:absolute;right:20px;top:70px;background:white;box-shadow:0 10px 30px rgba(0,0,0,0.2);border-radius:12px;width:240px;z-index:1001;">
-            <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
-                <div style="width:44px;height:44px;background:#8e44ad;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;background: #8e44ad;">
+                <div style="width:44px;height:44px;background:gray;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-user-tie"></i>
                 </div>
                 <div>
-                    <div style="font-weight:600;"><?= htmlspecialchars($counselor_name) ?></div>
-                    <small style="color:#8e44ad;">Counselor</small>
+                    <div style="font-weight:600; "><?= htmlspecialchars($counselor_name) ?></div>
+                    <small style="color:white;">Counselor</small>
                 </div>
             </div>
             <ul style="margin:0;padding:0;list-style:none;">
@@ -289,7 +289,7 @@ $completed_count = $completed_stmt->fetchColumn();
             <ul>
                 <li><a href="counselor_dashboard.php" class="active"><i class="fas fa-th-large"></i> Dashboard</a></li>
                 <li>
-                    <a href="javascript:void(0)" onclick="openAllAppointmentsPanel()">
+                    <a href="javascript:void(0)" onclick="openAllAppointmentsPanel()" >
                         <i class="fas fa-calendar-check"></i> Appointments
                         <?php if ($pending_count > 0): ?>
                             <span class="badge"><?= $pending_count ?></span>

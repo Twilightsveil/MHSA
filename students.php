@@ -66,7 +66,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .search-box {
             position: relative;
-            width: 400px;
+            width: 1500px;
         }
         .search-box input {
             width: 100%;
