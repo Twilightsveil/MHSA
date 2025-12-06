@@ -109,35 +109,109 @@ button, .btn {
     width: 100%; 
     padding: 15px; 
     background: linear-gradient(135deg, #b88ed9, var(--purple-light)); 
-    /* ... other styles ... */
+
 }
 
-/* Crisis hotline on login right panel */
-.login-right .hotline{
+.login-wrapper {
+    display: flex;
+    min-height: 100vh;
+    align-items: stretch;
+}
+
+.login-left {
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background: white;
+}
+
+.login-right {
+    width: 50%;
+    background: linear-gradient(135deg, #6a11cb 0%, #fda5f9 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Centered Logo */
+.login-logo {
+    text-align: center;
+    z-index: 2;
+    animation: fadeInUp 1s ease-out;
+}
+
+.logo-img {
+    max-width: 320px;
+    height: auto;
+    filter: drop-shadow(0 15px 35px rgba(0,0,0,0.3));
+    border-radius: 24px;
+}
+
+
+/* Hotline Card (Top-Right) */
+.hotline-card {
     position: absolute;
-    top: 18px;
-    right: 18px;
-    z-index: 60;
-}
-.hotline-card{
-    display:inline-flex;
-    align-items:center;
-    gap:12px;
-    padding:10px 14px;
-    border-radius:12px;
-    background: linear-gradient(90deg, var(--primary), #b88ed9);
-    color: #fff;
+    top: 30px;
+    right: 30px;
+    background: rgba(255, 213, 213, 0.96);
+    padding: 18px 28px;
+    border-radius: 24px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    gap: 16px;
     text-decoration: none;
-    font-weight: 700;
-    box-shadow: 0 12px 34px rgba(72,30,95,0.28);
-    transition: transform .18s ease, box-shadow .18s ease, opacity .18s;
+    color: var(--text-dark);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.4);
+    z-index: 10;
 }
-.hotline-card:hover{ transform: translateY(-4px); box-shadow: 0 20px 46px rgba(72,30,95,0.36); }
-.hotline-icon svg{ display:block; width:20px; height:20px; color: rgba(255,255,255,0.98); }
-.hotline-text{ display:flex; flex-direction:column; line-height:1; font-size:13px; color: rgba(255,255,255,0.95); }
-.hotline-text small{ font-size:9px; font-weight: 400; opacity: 0.8; }
-.login-right .hotline-mobile { display:none; }
 
+.hotline-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 25px 55px rgba(0,0,0,0.35);
+}
+
+.hotline-icon svg {
+    width: 38px;
+    height: 38px;
+    stroke: #e74c3c;
+}
+
+.hotline-number {
+    color: #e74c3c;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .login-wrapper { flex-direction: column; }
+    .login-left, .login-right { width: 100%; min-height: 50vh; }
+    .login-right { order: -1; justify-content: flex-start; padding-top: 80px; }
+    .logo-img { max-width: 240px; }
+    .hotline-card { top: 20px; right: 20px; padding: 14px 20px; }
+}
+
+@media (max-width: 576px) {
+    .login-box { padding: 35px 25px; margin: 20px; }
+    .system-title h1 { font-size: 24px; }
+    .logo-img { max-width: 180px; }
+    .logo-fallback { font-size: 100px; }
+    .logo-fallback span { font-size: 48px; letter-spacing: 6px; }
+}
 
 /* NAVBAR */
 .navbar {
@@ -416,7 +490,7 @@ button, .btn {
     justify-content: center;
     align-items: center;
     z-index: 999;
-    padding: 20px; /* Added padding for small screens */
+    padding: 20px;
 }
 
 .modal-content {
@@ -647,6 +721,7 @@ button, .btn {
 
 /* Responive (sana) */
 @media (max-width: 900px) {
+
     /* Login Page */
     .login-wrapper { flex-direction: column; }
     .login-left, .login-right { width: 100%; height: 50vh; }
@@ -667,9 +742,9 @@ button, .btn {
         margin-bottom: 25px;
         padding: 15px;
     }
-    .sidebar h2 { display: none; } /* Hide section titles on mobile */
+    .sidebar h2 { display: none; } 
     .sidebar-menu ul { display: flex; flex-wrap: wrap; justify-content: space-between; }
-    .sidebar-menu li { flex-basis: 48%; } /* Two columns */
+    .sidebar-menu li { flex-basis: 48%; } 
     .sidebar-menu li a { 
         justify-content: center;
         text-align: center;
@@ -677,7 +752,7 @@ button, .btn {
         padding: 10px;
     }
     .sidebar-menu li a i { margin-right: 0; margin-bottom: 5px; }
-    .sidebar-menu li a span:not(.badge) { display: none; } /* Hide link text to save space */
+    .sidebar-menu li a span:not(.badge) { display: none; } 
     .main-content {
         width: 100%;
     }
@@ -689,7 +764,7 @@ button, .btn {
 }
 
 @media (max-width: 480px) {
-    .sidebar-menu li { flex-basis: 100%; } /* One column on very small screens */
+    .sidebar-menu li { flex-basis: 100%; }
     .appointment-item { flex-direction: column; align-items: flex-start; }
     .appointment-item .actions { margin-top: 10px; }
 }
@@ -927,7 +1002,6 @@ button, .btn {
     font-size: 18px;
 }
 
-/* Error message based on success message style */
 .error-message {
     background: linear-gradient(135deg, #f8d7da, #f5c6cb);
     border: 2px solid var(--danger);
@@ -1098,4 +1172,3 @@ button, .btn {
 .logout-link i {
     color: var(--danger);
 }
-

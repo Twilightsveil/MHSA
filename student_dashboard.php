@@ -225,7 +225,7 @@ $events = $appointments->fetchAll(PDO::FETCH_ASSOC);
         <?php endif; ?>
     </button>
 
-    <!-- BEAUTIFUL DROPDOWN -->
+    <!-- DROPDOWN -->
     <div id="notifDropdown" style="display:none;position:absolute;right:0;top:50px;background:white;box-shadow:0 15px 40px rgba(0,0,0,0.18);border-radius:16px;min-width:380px;max-height:80vh;overflow:hidden;z-index:1001;border:1px solid #eee;">
         <div style="padding:18px 22px;font-weight:bold;background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;border-radius:16px 16px 0 0;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -357,7 +357,7 @@ function toggleNotifDropdown(e) {
         </div>
     </div>
 
-   <!-- Big Calendar -->
+   <!-- Calendar -->
     <h2 style="text-align: center;"><i class="fas fa-calendar-alt"></i> My Appointments Calendar</h2>
 <div id="calendar-container">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -831,7 +831,7 @@ function setRating(rating) {
     document.getElementById('ratingText').style.color = ratingColors[rating - 1];
 }
 
-// Optional: Hover effect
+
 document.querySelectorAll('.star').forEach(star => {
     star.addEventListener('mouseenter', function() {
         if (selectedRating === 0) {
@@ -873,7 +873,6 @@ function submitFeedback() {
         if (res.success) {
             alert('Thank you so much for your feedback! It helps us improve.');
             document.getElementById('feedbackModal').style.display = 'none';
-            // Optionally reopen panel to see updated status
             setTimeout(() => openStudentAppointmentsPanel(), 400);
         } else {
             alert('Failed to submit. Please try again.');

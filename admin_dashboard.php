@@ -13,6 +13,17 @@ $firstName = explode(' ', trim($name))[0] ?? 'Admin';
 // Fetch data
 $counselors = $conn->query("SELECT * FROM counselor ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
 $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch all appointments with names
+$appts = $conn->query("
+    SELECT a.*, 
+           CONCAT(s.fname, ' ', s.lname) as student_name,
+           CONCAT(c.fname, ' ', c.lname) as counselor_name
+    FROM appointments a
+    JOIN student s ON a.student_Id = s.student_id
+    JOIN counselor c ON a.counselor_ID = c.counselor_id
+    ORDER BY a.appointment_date DESC
+")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -23,27 +34,97 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
     <title>Admin Dashboard • MHSA</title>
     <link rel="stylesheet" href="CSS/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        .appointment-card {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border-left: 6px solid #8e44ad;
+        }
+        .appointment-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(142,68,173,0.15);
+        }
+        .appointment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .appointment-date {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .appointment-status {
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+        }
+        .pending   { background: #e67e22; }
+        .approved  { background: #27ae60; }
+        .done      { background: #3498db; }
+
+        .appointment-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .appointment-person {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .person-avatar {
+            width: 48px; height: 48px;
+            background: #8e44ad; color: white;
+            border-radius: 50%; display: flex;
+            align-items: center; justify-content: center;
+            font-weight: bold; font-size: 18px;
+        }
+        .person-info strong { display: block; font-size: 16px; }
+        .person-info small { color: #8e44ad; }
+
+        .appointment-reason {
+            background: #f5f0ff;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-top: 12px;
+        }
+
+        .appointment-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+    </style>
 </head>
 <body>
 
 <div class="dashboard-container">
     <!-- SIDEBAR -->
- <aside class="sidebar">
-    <div class="sidebar-menu">
-        <ul>
-            <li><a href="#" class="active" data-section="counselors"><i class="fa-solid fa-user-tie"></i> Counselors <span class="badge"><?=count($counselors)?></span></a></li>
-            <li><a href="#" data-section="students"><i class="fa-solid fa-users"></i> Students <span class="badge"><?=count($students)?></span></a></li>
-            <li><a href="#" data-section="appointments"><i class="fa-solid fa-calendar-check"></i> Appointments</a></li>
-            
-            <!-- LOGOUT BUTTON AT THE BOTTOM -->
-            <li style="margin-top: auto; padding-top: 20px; border-top: 1px solid #eee;">
-                <a href="logout.php" class="logout-link">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-                </a>
-            </li>
-        </ul>
-    </div>
-</aside>
+    <aside class="sidebar">
+        <div class="sidebar-menu">
+            <ul>
+                <li><a href="#" class="active" data-section="counselors"><i class="fas fa-user-tie"></i> Counselors <span class="badge"><?=count($counselors)?></span></a></li>
+                <li><a href="#" data-section="students"><i class="fas fa-user-graduate"></i> Students <span class="badge"><?=count($students)?></span></a></li>
+                <li><a href="#" data-section="appointments"><i class="fas fa-calendar-check"></i>Appointments <span class="badge"><?=count($appts)?></span></a></li>
+                
+                <li style="margin-top: auto; padding-top: 20px; border-top: 1px solid #eee;">
+                    <a href="logout.php" class="logout-link">
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </aside>
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
@@ -56,8 +137,8 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
         <section id="counselors" class="section active">
             <div class="widget">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h3><i class="fa-solid fa-user-tie"></i> Counselors</h3>
-                    <button class="btn small" onclick="openAddModal('counselor')"><i class="fa-solid fa-plus"></i> Add New</button>
+                    <h3><i class="fas fa-user-tie"></i>Counselors</h3>
+                    <button class="btn small" onclick="openAddModal('counselor')">Add New</button>
                 </div>
                 <div class="search-box">
                     <input type="text" id="searchCounselors" placeholder="Search counselors...">
@@ -90,7 +171,7 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
                                 data-email="<?=htmlspecialchars($c['email'])?>"
                                 data-phone="<?=htmlspecialchars($c['phone']??'')?>"
                                 data-bio="<?=htmlspecialchars($c['bio']??'')?>">
-                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                                Edit
                             </button>
                         </div>
                     </div>
@@ -103,8 +184,8 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
         <section id="students" class="section">
             <div class="widget">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h3><i class="fa-solid fa-users"></i> Students</h3>
-                    <button class="btn small" onclick="openAddModal('student')"><i class="fa-solid fa-plus"></i> Add New</button>
+                    <h3><i class="fas fa-user-graduate"></i> Students</h3>
+                    <button class="btn small" onclick="openAddModal('student')">Add New</button>
                 </div>
                 <div class="search-box">
                     <input type="text" id="searchStudents" placeholder="Search students...">
@@ -133,7 +214,7 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
                                 data-course="<?=htmlspecialchars($s['course']??'')?>"
                                 data-year="<?=htmlspecialchars($s['year']??'')?>"
                                 data-section="<?=htmlspecialchars($s['section']??'')?>">
-                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                                Edit
                             </button>
                         </div>
                     </div>
@@ -141,10 +222,80 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
                 </div>
             </div>
         </section>
+
+        <!-- APPOINTMENTS SECTION -->
+<section id="appointments" class="section">
+    <div class="widget">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3><i class="fas fa-calendar-check"></i> Appointments</h3>
+            <div style="color:#666; font-size:14px;">
+                Total: <strong><?= count($appts) ?></strong>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchAppointments" placeholder="Search by student, counselor, or reason...">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+
+        <!-- FLEX CONTAINER -->
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; margin-top: 24px;" id="appointmentsGrid">
+            <?php foreach($appts as $a): 
+                $status = $a['status'] ?? 'pending';
+                $studentInit = strtoupper(substr($a['student_name'],0,2));
+                $counselorInit = strtoupper(substr($a['counselor_name'],0,2));
+                $date = date('M j, Y \a\t g:i A', strtotime($a['appointment_date']));
+                $search = strtolower($a['student_name'].' '.$a['counselor_name'].' '.$a['appointment_desc'].' '.$date);
+
+                // Colors by status
+                $cardBg = $status === 'approved' ? '#d4edda' : ($status === 'done' ? '#d1ecf1' : '#fff3cd');
+                $borderLeft = $status === 'approved' ? '#27ae60' : ($status === 'done' ? '#3498db' : '#e67e22');
+            ?>
+            <div class="appointment-card" data-search="<?= htmlspecialchars($search) ?>"
+                 style="flex: 1 1 360px; max-width: 420px; background:<?= $cardBg ?>; border-left:6px solid <?= $borderLeft ?>;">
+                
+                <div class="appointment-header">
+                    <div class="appointment-date"><strong><?= $date ?></strong></div>
+                    <div class="appointment-status <?= $status ?>">
+                        <?= ucfirst($status) ?>
+                    </div>
+                </div>
+
+                <div class="appointment-body">
+                    <div class="appointment-person">
+                        <div class="person-avatar"><?= $studentInit ?></div>
+                        <div class="person-info">
+                            <strong><?= htmlspecialchars($a['student_name']) ?></strong>
+                            <small>Student</small>
+                        </div>
+                    </div>
+                    <div class="appointment-person">
+                        <div class="person-avatar" style="background:#27ae60;"><?= $counselorInit ?></div>
+                        <div class="person-info">
+                            <strong><?= htmlspecialchars($a['counselor_name']) ?></strong>
+                            <small>Counselor</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="appointment-reason">
+                    <strong>Reason:</strong> <?= htmlspecialchars($a['appointment_desc'] ?: 'Not specified') ?>
+                </div>
+
+                <div class="appointment-actions">
+                    <button class="btn small" style="background:#e74c3c;" onclick="deleteAppointment(<?= $a['appointment_id'] ?>)">
+                        Delete
+                    </button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
     </main>
 </div>
 
-<!-- EDIT / ADD MODAL -->
+<!-- MODALS -->
 <div class="modal" id="editModal">
     <div class="modal-content">
         <span class="close-modal" onclick="closeModal()">×</span>
@@ -155,10 +306,7 @@ $students   = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO
             <div id="formFields"></div>
             <div style="margin-top:30px;text-align:right;">
                 <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn" style="margin-left:12px;">
-                    <span class="text">Save Changes</span>
-                    <span class="spinner" style="display:none;">Saving...</span>
-                </button>
+                <button type="submit" class="btn" style="margin-left:12px;">Save Changes</button>
             </div>
         </form>
     </div>
@@ -176,18 +324,20 @@ document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
     });
 });
 
-// Live Search
-['Counselors', 'Students'].forEach(type => {
+// Search
+['Counselors', 'Students', 'Appointments'].forEach(type => {
     const input = document.getElementById(`search${type}`);
-    if (!input) return;
-    input.addEventListener('input', () => {
-        const term = input.value.toLowerCase();
-        document.querySelectorAll(`#${type.toLowerCase()}Grid [data-search]`).forEach(card => {
-            card.style.display = card.dataset.search.includes(term) ? '' : 'none';
+    if (input) {
+        input.addEventListener('input', () => {
+            const term = input.value.toLowerCase();
+            document.querySelectorAll(`#${type.toLowerCase()}Grid [data-search]`).forEach(card => {
+                card.style.display = card.dataset.search.includes(term) ? '' : 'none';
+            });
         });
-    });
+    }
 });
 
+// Modal functions (unchanged from your original)
 // Open Edit Modal
 function openEditModal(btn) {
     const d = btn.dataset;
@@ -269,10 +419,35 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     }
 });
 
-// Close modal on outside click
-window.addEventListener('click', e => {
-    if (e.target === document.getElementById('editModal')) closeModal();
+
+// Search
+document.getElementById('searchAppointments')?.addEventListener('input', function() {
+    const term = this.value.toLowerCase();
+    document.querySelectorAll('.appointment-card').forEach(card => {
+        card.style.display = card.dataset.search.includes(term) ? '' : 'none';
+    });
 });
+
+// Delete Appointment
+function deleteAppointment(id) {
+    if (!confirm('Are you sure you want to delete this appointment?')) return;
+
+    fetch('api/delete_appointment.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'id=' + id
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            document.querySelector(`.appointment-card[data-id="${id}"]`)?.remove();
+            alert('Appointment deleted successfully!');
+        } else {
+            alert('Failed to delete appointment.');
+        }
+    });
+}
+
 </script>
 </body>
 </html>

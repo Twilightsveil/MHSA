@@ -24,9 +24,9 @@ if (file_exists($notif_file)) {
 $stmt = $conn->prepare("
     SELECT a.appointment_id, a.appointment_date, a.appointment_desc, a.status,
            s.fname, s.lname, s.mi, s.student_id
-    FROM appointments a 
+    FROM appointments a
     JOIN student s ON a.student_id = s.student_id 
-    WHERE a.counselor_id = ?
+    WHERE a.counselor_id = ? AND status != 'Done'
     ORDER BY a.appointment_date DESC
 ");
 $stmt->execute([$counselor_id]);
@@ -182,7 +182,7 @@ $pending_count = $pending->fetchColumn();
             <button id="notifBtn" onclick="toggleNotifDropdown(event)" style="background:none;border:none;cursor:pointer;font-size:22px;">
                 <i class="fas fa-bell"></i>
                 <?php if (!empty($_SESSION['counselor_notifications'])): ?>
-                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:black;font-size:11px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <span style="position:absolute;top:-8px;right:-8px;background:#e74c3c;color:white;font-size:11px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
                         <?= count($_SESSION['counselor_notifications']) ?>
                     </span>
                 <?php endif; ?>
@@ -254,13 +254,13 @@ $pending_count = $pending->fetchColumn();
             </div>
         </button>
         <div id="profileDropdown" class="profile-dropdown" aria-hidden="true" style="position:absolute;right:20px;top:70px;background:white;box-shadow:0 10px 30px rgba(0,0,0,0.2);border-radius:12px;width:240px;z-index:1001;">
-            <div style="padding:16px 20px;border-bottom:1px solid #eee;background:#8e44ad;display:flex;align-items:center;gap:12px;">
-                <div style="width:44px;height:44px;background:#cccccc;color:white;border-radius:20%;display:flex;align-items:center;justify-content:center;">
+            <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;background:#8e44ad;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-user-tie"></i>
                 </div>
                 <div>
                     <div style="font-weight:600;"><?= htmlspecialchars($counselor_name) ?></div>
-                    <small style="color:white;">Counselor</small>
+                    <small style="color:#8e44ad;">Counselor</small>
                 </div>
             </div>
             <ul style="margin:0;padding:0;list-style:none;">
@@ -286,12 +286,8 @@ $pending_count = $pending->fetchColumn();
                     </a>
                 </li>
             </ul>
-        </nav>
-        <h2 style="margin-top:30px;">Account</h2>
-        <nav class="sidebar-menu">
             <ul>
-                <li><a href="counselor_profile.php"><i class="fas fa-user-cog"></i> Profile Settings</a></li>
-                <li><a href="logout.php" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                <li><a href="students.php"><i class="fas fa-user-graduate"></i>Students</a></li>
             </ul>
         </nav>
     </aside>
@@ -311,23 +307,48 @@ $pending_count = $pending->fetchColumn();
     </div>
 </div>
 
+<!-- Appointment Detail Modal -->
 <div class="modal" id="appointmentDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1200;align-items:center;justify-content:center;">
-    <div class="modal-content" style="background:white;border-radius:18px;max-width:500px;width:90%;padding:30px;position:relative;">
+    <div class="modal-content" style="background:white;border-radius:18px;max-width:520px;width:90%;padding:30px;position:relative;">
+        <p id="statusNote" style="text-align:center;color:#7f8c8d;margin-top:10px;"></p>
         <span onclick="this.closest('.modal').style.display='none'" style="position:absolute;top:15px;right:20px;font-size:32px;cursor:pointer;color:#aaa;">×</span>
+        
         <h3 style="text-align:center;color:#8e44ad;margin-bottom:20px;">Appointment Details</h3>
+        
+        <!-- Student Info -->
         <div style="text-align:center;margin:20px 0;">
             <div style="width:90px;height:90px;background:#8e44ad;color:white;border-radius:50%;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:bold;">
                 <span id="detailInitials"></span>
             </div>
-            <h4 id="detailStudent" style="margin:10px 0;"></h4>
+            <h4 id="detailStudent" style="margin:10px 0;color:#2c3e50;"></h4>
+            <div id="detailStatusBadge" style="display:inline-block;padding:6px 16px;border-radius:30px;font-size:13px;font-weight:bold;color:white;margin-top:8px;">
+                Pending Approval
+            </div>
         </div>
-        <div style="background:#f8f9fa;padding:18px;border-radius:14px;">
-            <p style="margin:10px 0;"><strong>Date & Time:</strong> <span id="detailDateTime" style="color:#8e44ad;"></span></p>
-            <p style="margin:10px 0;"><strong>Reason:</strong> <span id="detailReason"></span></p>
+
+        <!-- Details -->
+        <div style="background:#f8f9fa;padding:18px;border-radius:14px;margin:15px 0;">
+            <p style="margin:10px 0;"><strong>Date & Time:</strong> <span id="detailDateTime" style="color:#8e44ad;font-weight:600;"></span></p>
+            <p style="margin:10px 0;"><strong>Reason:</strong> <span id="detailReason" style="color:#444;"></span></p>
         </div>
-        <div style="text-align:center;margin-top:25px;">
-            <button onclick="approveAppointment(currentAppointmentId)" style="padding:12px 30px;background:#27ae60;color:white;border:none;border-radius:12px;font-weight:bold;cursor:pointer;">
+
+        <!-- Action Buttons -->
+                <!-- Smart Action Button -->
+        <div style="margin-top:30px;text-align:center;">
+            <button id="smartActionBtn" 
+                    class="btn" 
+                    style="padding:16px 40px;font-size:17px;font-weight:600;">
                 Approve Appointment
+            </button>
+        </div>
+
+        <!-- Secondary buttons -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px;">
+            <button onclick="openChatWithStudent()" class="btn" style="background:#3498db;padding:14px;font-size:15px;">
+                Chat
+            </button>
+            <button onclick="rescheduleFromModal()" class="btn" style="background:#f39c12;padding:14px;font-size:15px;">
+                Reschedule
             </button>
         </div>
     </div>
@@ -354,7 +375,185 @@ $pending_count = $pending->fetchColumn();
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
 let currentAppointmentId = null;
+let currentStudentId = null;
 let calendar;
+
+//calendar initialization
+document.addEventListener('DOMContentLoaded', function () {
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        height: 'auto',
+
+        events: [
+            
+            <?php foreach ($all_appointments as $a):
+
+                $name = trim("{$a['fname']} " . ($a['mi'] ? $a['mi'].'.' : '') . " {$a['lname']}");
+                $title = "$name - " . htmlspecialchars($a['appointment_desc']);
+                $color = $a['status'] === 'approved' ? '#27ae60' : '#8e44ad';
+                $opacity = $a['status'] === 'done' ? '0.6' : '1';
+                $initials = strtoupper(($a['fname'][0]??'S') . ($a['lname'][0]??'T'));
+                $dt = date('F j, Y \a\t g:i A', strtotime($a['appointment_date']));
+            ?>
+            {
+                id: '<?= $a['appointment_id'] ?>',
+                title: '<?= addslashes($title) ?>',
+                start: '<?= $a['appointment_date'] ?>',
+                color: '<?= $color ?>',
+                textColor: 'white',
+                extendedProps: {
+                    appointment_id: '<?= $a['appointment_id'] ?>',
+                    student_id: '<?= $a['student_id'] ?>',
+                    student: '<?= htmlspecialchars($name) ?>',
+                    initials: '<?= $initials ?>',
+                    datetime: '<?= $dt ?>',
+                    reason: '<?= htmlspecialchars($a['appointment_desc'] ?? '') ?>',
+                    status: '<?= $a['status'] ?? 'pending' ?>'
+                }
+            },
+            <?php endforeach; ?>
+        ],
+
+        eventClick: function(info) {
+            const p = info.event.extendedProps;
+
+            currentAppointmentId = p.appointment_id;
+            currentStudentId     = p.student_id;
+
+            document.getElementById('detailInitials').textContent = p.initials;
+            document.getElementById('detailStudent').textContent = p.student;
+            document.getElementById('detailDateTime').textContent = p.datetime;
+            document.getElementById('detailReason').textContent   = p.reason || 'Not specified';
+
+            updateModalStatus(p.status || 'pending');
+
+            document.getElementById('appointmentDetailModal').style.display = 'flex';
+        }
+    });
+
+    calendar.render();
+});
+
+// Update modal status
+function updateModalStatus(status) {
+    const badge = document.getElementById('detailStatusBadge');
+    const note  = document.getElementById('statusNote');
+    const smartBtn = document.getElementById('smartActionBtn');
+
+    if (status === 'approved') {
+        badge.textContent = 'Approved';
+        badge.style.background = '#27ae60';
+        note.innerHTML = 'This appointment is confirmed and ready.';
+        smartBtn.textContent = 'Mark as Done';
+        smartBtn.style.background = '#27ae60';
+        smartBtn.onclick = () => markAsDone(currentAppointmentId);
+    } 
+    else if (status === 'done') {
+        badge.textContent = 'Session Completed';
+        badge.style.background = '#3498db';
+        note.innerHTML = 'This session has been completed.';
+        smartBtn.textContent = 'Completed';
+        smartBtn.disabled = true;
+        smartBtn.style.background = '#95a5a6';
+        smartBtn.style.opacity = '0.8';
+    } 
+    else { // pending
+        badge.textContent = 'Pending Approval';
+        badge.style.background = '#e67e22';
+        note.textContent = 'This appointment is awaiting your approval.';
+        smartBtn.textContent = 'Approve Appointment';
+        smartBtn.style.background = '#27ae60';
+        smartBtn.disabled = false;
+        smartBtn.onclick = () => approveAppointment(currentAppointmentId);
+    }
+}
+
+// MARK AS DONE – FIXED: No longer opens panel!
+function markAsDone(id) {
+    if (!confirm('Mark this appointment as completed?')) return;
+
+    const btn = event ? event.target : null;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+
+    fetch('api/mark_done.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'appointment_id=' + id
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            // removing from calendar
+            const event = calendar.getEventById(id);
+            if (event) event.remove();
+
+            // Update modal
+            if (currentAppointmentId == id) {
+                updateModalStatus('done');
+            }
+
+            // Update panel card
+            const card = document.querySelector(`.appt-card[data-id="${id}"]`);
+            if (card) {
+                card.classList.remove('pending', 'approved');
+                card.classList.add('done');
+                card.querySelector('.appt-status').textContent = 'Done';
+                card.querySelector('.appt-status').style.background = '#3498db';
+                const doneBtn = card.querySelector('.done');
+                if (doneBtn) {
+                    doneBtn.disabled = true;
+                    doneBtn.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
+                }
+            }
+
+            alert('Appointment marked as completed!');
+        } else {
+            alert('Failed to mark as done.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Mark as Done';
+            }
+        }
+    });
+}
+
+// Open chat
+function openChatWithStudent() {
+    if (currentStudentId) {
+        window.open(`chat.php?with=${currentStudentId}`, '_blank');
+    }
+}
+
+// Reschedule
+function rescheduleFromModal() {
+    const newDate = prompt('Enter new date and time (YYYY-MM-DD HH:MM):', '');
+    if (!newDate || !confirm('Reschedule this appointment?')) return;
+
+    fetch('api/reschedule.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `appointment_id=${currentAppointmentId}&new_datetime=${newDate}`
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            alert('Rescheduled successfully!');
+            location.reload();
+        } else {
+            alert('Invalid date/time.');
+        }
+    });
+}
 
 // Dropdowns
 function toggleNotifDropdown(e) { e.stopPropagation(); const d = document.getElementById('notifDropdown'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; }
@@ -362,52 +561,6 @@ function toggleProfileDropdown(e) { e.stopPropagation(); const d = document.getE
 document.addEventListener('click', () => {
     document.getElementById('notifDropdown').style.display = 'none';
     document.getElementById('profileDropdown').setAttribute('aria-hidden', 'true');
-});
-
-// Calendar
-document.addEventListener('DOMContentLoaded', () => {
-    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-        initialView: 'timeGridWeek',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
-        slotMinTime: '08:00:00',
-        slotMaxTime: '18:00:00',
-        height: 'auto',
-        events: [
-            <?php foreach ($all_appointments as $a):
-                $name = trim("{$a['fname']} " . ($a['mi'] ? $a['mi'].'.' : '') . " {$a['lname']}");
-                $title = "$name - " . htmlspecialchars($a['appointment_desc']);
-                $color = $a['status'] === 'approved' ? '#27ae60' : ($a['status'] === 'done' ? '#3498db' : '#8e44ad');
-                $initials = strtoupper(($a['fname'][0]??'S') . ($a['lname'][0]??'T'));
-                $dt = date('F j, Y \a\t g:i A', strtotime($a['appointment_date']));
-            ?>
-            {
-                id: '<?= $a['appointment_id'] ?>',
-                title: '<?= $title ?>',
-                start: '<?= $a['appointment_date'] ?>',
-                color: '<?= $color ?>',
-                textColor: 'white',
-                extendedProps: {
-                    appointment_id: '<?= $a['appointment_id'] ?>',
-                    student: '<?= htmlspecialchars($name) ?>',
-                    initials: '<?= $initials ?>',
-                    datetime: '<?= $dt ?>',
-                    reason: '<?= htmlspecialchars($a['appointment_desc']) ?>',
-                    status: '<?= $a['status'] ?? 'pending' ?>'
-                }
-            },
-            <?php endforeach; ?>
-        ],
-        eventClick: function(i) {
-            const p = i.event.extendedProps;
-            document.getElementById('detailInitials').textContent = p.initials;
-            document.getElementById('detailStudent').textContent = p.student;
-            document.getElementById('detailDateTime').textContent = p.datetime;
-            document.getElementById('detailReason').textContent = p.reason;
-            currentAppointmentId = p.appointment_id;
-            document.getElementById('appointmentDetailModal').style.display = 'flex';
-        }
-    });
-    calendar.render();
 });
 
 // Panel
@@ -429,7 +582,7 @@ function openAllAppointmentsPanel() {
                 const initials = name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
 
                 html += `
-                <div class="appt-card ${status}">
+                    <div class="appt-card ${status}" data-id="${a.appointment_id}">
                     <div class="appt-header">
                         <div class="appt-date"><i class="fas fa-calendar"></i> ${fmt}</div>
                         <div class="appt-status">${status.charAt(0).toUpperCase() + status.slice(1)}</div>
@@ -439,14 +592,27 @@ function openAllAppointmentsPanel() {
                         <div><strong>${name}</strong><br><small>Student</small></div>
                     </div>
                     <div class="appt-reason"><strong>Reason:</strong> ${a.appointment_desc || 'Not specified'}</div>
-                    <div class="appt-actions">
-                        <button class="chat" onclick="window.open('chat.php?with=<?= $a['student_id'] ?>', '_blank')">
-                            Chat
-                        </button>
-                        <button class="reschedule" onclick="rescheduleAppointment('${a.appointment_id}', '${name}')"><i class="fas fa-clock"></i> Reschedule</button>
-                        ${status !== 'done' ? `<button class="done" onclick="markAsDone('${a.appointment_id}')"><i class="fas fa-check-circle"></i> Done</button>` :
-                        `<button disabled><i class="fas fa-check-circle"></i> Completed</button>`}
-                    </div>
+                    <div class="appt-actions" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <button class="chat" onclick="window.open('chat.php?with=<?= $a['student_id'] ?>', '_blank')">
+                        Chat
+                    </button>
+                    <button class="reschedule" onclick="rescheduleAppointment('${a.appointment_id}', '${name}')">
+                        Reschedule
+                    </button>
+
+                    ${status === 'pending' ? 
+                        `<button class="approve" onclick="approveAppointment('${a.appointment_id}')" style="background:#27ae60;color:white;">
+                            Approve
+                        </button>` :
+                    status === 'approved' ? 
+                        `<button class="done" onclick="markAsDone('${a.appointment_id}')" style="background:#27ae60;color:white;">
+                            Mark as Done
+                        </button>` :
+                        `<button disabled style="background:#3498db;color:white;">
+                            Completed
+                        </button>`
+                    }
+                </div>
                 </div>`;
             });
             body.innerHTML = html;
@@ -471,15 +637,60 @@ document.getElementById('apptSearch').addEventListener('input', function() {
 
 // Actions
 function approveAppointment(id) {
-    if (!id || !confirm('Approve this appointment?')) return;
-    fetch('api/approve_appointment.php', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'appointment_id='+id})
-        .then(r=>r.json()).then(d=>{ if(d.success){ alert('Approved!'); location.reload(); } });
+    if (!confirm('Approve this appointment?')) return;
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('api/approve_appointment.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'appointment_id=' + id
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            // Update calendar event color
+            const event = calendar.getEventById(id);
+            if (event) {
+                event.setProp('color', '#27ae60');
+            }
+
+            // Update modal if open
+            if (currentAppointmentId == id) {
+                updateModalStatus('approved');
+            }
+
+            // Update panel card
+            const card = document.querySelector(`.appt-card[data-id="${id}"]`);
+            if (card) {
+                card.classList.remove('pending');
+                card.classList.add('approved');
+                card.querySelector('.appt-status').textContent = 'Approved';
+                card.querySelector('.appt-status').style.background = '#27ae60';
+                const actions = card.querySelector('.appt-actions');
+                actions.innerHTML = `
+                    <button class="chat" onclick="window.open('chat.php?with=...')">Chat</button>
+                    <button class="reschedule" onclick="rescheduleAppointment('${id}', '${name}')">Reschedule</button>
+                    <button class="done" onclick="markAsDone('${id}')">Mark as Done</button>
+                `;
+            }
+
+            updateModalStatus('approved');
+        } else {
+            alert('Failed to approve.');
+            btn.disabled = false;
+            btn.innerHTML = 'Approve Appointment';
+        }
+    });
 }
 
 function markAsDone(id) {
     if (!confirm('Mark as completed?')) return;
     fetch('api/mark_done.php', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'appointment_id='+id})
         .then(r=>r.json()).then(d=>{ if(d.success){ alert('Done!'); openAllAppointmentsPanel(); } });
+        updateModalStatus('done');
 }
 
 function rescheduleAppointment(id, name) {
@@ -542,7 +753,7 @@ function approveAndRemove(appointment_id, notification_index, button) {
                 }
             }, 400);
 
-            // Optional: Remove from file too
+
             fetch('api/remove_notification.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

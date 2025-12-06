@@ -111,31 +111,7 @@ $current_page = 'profile';
     </div>
 </div>
 <div class="dashboard-container">
-    
-    <aside class="sidebar">
-        <h2>Main Menu</h2>
-        <nav class="sidebar-menu">
-            <ul>
-                <li><a href="counselor_dashboard.php" class="<?= ($current_page == 'dashboard') ? 'active' : ''; ?>">
-                    <i class="fas fa-th-large"></i> Dashboard
-                </a></li>
-                <li><a href="counselor_students.php" class="<?= ($current_page == 'students') ? 'active' : ''; ?>">
-                    <i class="fas fa-users"></i> My Students
-                </a></li>
-            </ul>
-        </nav>
-        <h2 style="margin-top:20px;">Account</h2>
-        <nav class="sidebar-menu">
-            <ul>
-                <li><a href="counselor_profile.php" class="<?= ($current_page == 'profile') ? 'active' : ''; ?>">
-                    <i class="fas fa-user-cog"></i> Profile Settings
-                </a></li>
-                <li><a href="logout.php" class="logout-link">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a></li>
-            </ul>
-        </nav>
-    </aside>
+
     <div class="main-content">
         <div class="profile-header">
             <div class="profile-header-content">
