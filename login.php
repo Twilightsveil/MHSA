@@ -1,3 +1,46 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+session_start();
+require_once 'db/connection.php';
+
+$error = '';
+
+if (isset($_POST['login'])) {
+    $id = trim($_POST['username'] ?? '');
+    $pass = $_POST['password'] ?? '';
+
+    if (empty($id) || empty($pass)) {
+        $error = "Fill all fields";
+    } else {
+        $tables = ['admin', 'counselor', 'student'];
+        $found = false;
+
+        foreach ($tables as $table) {
+            $id_field = $table . '_id';
+            $stmt = $conn->prepare("SELECT * FROM `$table` WHERE `$id_field` = ?");
+            $stmt->execute([$id]);
+            $user = $stmt->fetch();
+
+            if ($user) {
+                // Remove this line if passwords are plain text temporarily
+                if (password_verify($pass, $user['password']) || $pass === $user['password']) {
+                    $name = trim($user['fname'] . ' ' . ($user['mi'] ? $user['mi'].'. ' : '') . ' ' . $user['lname']);
+                    $_SESSION['user_id'] = $user[$id_field];
+                    $_SESSION['fullname'] = $name;
+                    $_SESSION['role'] = $table;
+
+                    if ($table === 'counselor') header("Location: counselor_dashboard.php");
+                    elseif ($table === 'student') header("Location: student_dashboard.php");
+                    else header("Location: admin_dashboard.php");
+                    exit();
+                }
+            }
+        }
+        $error = "Invalid ID or Password";
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
