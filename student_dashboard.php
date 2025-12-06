@@ -389,7 +389,7 @@ function toggleNotifDropdown(e) {
         <div id="step1Content">
             <p style="text-align:center;color:var(--text-light);margin:20px 0;">Choose a counselor:</p>
             <div id="counselorGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0;"></div>
-            <button class="btn" id="counselorNextBtn" disabled style="width:100%;">Next: Choose Date</button>
+            <button class="btn" id="counselorNextBtn" style="width:100%;">Next: Choose Date</button>
         </div>
 
         <div id="step2Content" style="display:none;">

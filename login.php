@@ -7,39 +7,45 @@ require_once 'db/connection.php';
 $error = '';
 
 if (isset($_POST['login'])) {
-    $id = trim($_POST['username'] ?? '');
+    $id   = trim($_POST['username'] ?? '');
     $pass = $_POST['password'] ?? '';
 
     if (empty($id) || empty($pass)) {
-        $error = "Fill all fields";
+        $error = "Please fill in both ID and password.";
     } else {
-        $tables = ['admin', 'counselor', 'student'];
-        $found = false;
-
-        foreach ($tables as $table) {
-            $id_field = $table . '_id';
-            $stmt = $conn->prepare("SELECT * FROM `$table` WHERE `$id_field` = ?");
+        try {
+            $stmt = $conn->prepare("SELECT * FROM users WHERE user_id = ? LIMIT 1");
             $stmt->execute([$id]);
-            $user = $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                // Remove this line if passwords are plain text temporarily
-                if (password_verify($pass, $user['password']) || $pass === $user['password']) {
-                    $name = trim($user['fname'] . ' ' . ($user['mi'] ? $user['mi'].'. ' : '') . ' ' . $user['lname']);
-                    $_SESSION['user_id'] = $user[$id_field];
-                    $_SESSION['fullname'] = $name;
-                    $_SESSION['role'] = $table;
+                $valid = password_verify($pass, $user['password']) 
+                      || $pass === $user['password']; 
 
-                    if ($table === 'counselor') header("Location: counselor_dashboard.php");
-                    elseif ($table === 'student') header("Location: student_dashboard.php");
-                    else header("Location: admin_dashboard.php");
-                    exit();
+                if ($valid) {
+                    $_SESSION['user_id']  = $user['user_id'];
+                    $_SESSION['role']     = $user['role'];
+                    $_SESSION['fullname'] = trim("{$user['fname']} " . ($user['mi'] ? $user['mi'].'.' : '') . " {$user['lname']}");
+
+                    $redirect = match($user['role']) {
+                        'admin'     => 'admin_dashboard.php',
+                        'counselor' => 'counselor_dashboard.php',
+                        'student'   => 'student_dashboard.php',
+                        default     => 'student_dashboard.php'
+                    };
+
+                    header("Location: $redirect");
+                    exit;
                 }
             }
+            $error = "Invalid ID or password.";
+        } catch (Exception $e) {
+            $error = "Login failed. Please try again.";
+            error_log("Login error: " . $e->getMessage());
         }
-        $error = "Invalid ID or Password";
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html>
